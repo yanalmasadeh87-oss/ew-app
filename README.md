@@ -1,2 +1,839 @@
 # ew-app
 YM APP
+cat > /mnt/user-data/outputs/index.html << 'ENDOFFILE'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>EW Strategy V3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080c14;--bg2:#0d1421;--bg3:#111827;--border:#1e293b;
+  --gold:#f0b429;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;
+  --orange:#f97316;--text:#e2e8f0;--muted:#64748b;--sub:#475569
+}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;padding:12px;min-height:100vh}
+h1{font-size:20px;font-weight:900;background:linear-gradient(90deg,#f0b429,#f97316);
+   -webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:2px}
+.sub{text-align:center;font-size:9px;color:var(--muted);letter-spacing:3px;margin-bottom:16px}
+.row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+      padding:9px 12px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;outline:none;min-width:0}
+input:focus{border-color:var(--gold)}
+.btn{background:var(--gold);color:#000;border:none;border-radius:6px;padding:9px 14px;
+     font-family:'Courier New',monospace;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap}
+.qc{background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:4px;
+    padding:5px 10px;font-size:10px;cursor:pointer;font-family:'Courier New',monospace}
+.qc.active,.qc:active{border-color:var(--gold);color:var(--gold);background:#f0b42911}
+.tf{flex:1;background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:4px;
+    padding:6px 2px;font-size:10px;cursor:pointer;font-family:'Courier New',monospace;text-align:center}
+.tf.active{background:#f0b42922;color:var(--gold);border-color:var(--gold)}
+.mode{flex:1;background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:4px;
+      padding:7px 4px;font-size:11px;cursor:pointer;font-family:'Courier New',monospace;text-align:center}
+.mode.active{background:#3b82f611;color:var(--blue);border-color:var(--blue)}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
+.ct{font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:10px}
+.price-big{font-size:26px;font-weight:900;color:var(--gold)}
+.ph{display:flex;justify-content:space-between;align-items:flex-start}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.si{background:var(--bg3);border-radius:6px;padding:9px;border:1px solid var(--border)}
+.sl-{font-size:8px;letter-spacing:2px;color:var(--muted);margin-bottom:3px}
+.sv{font-size:13px;font-weight:900}
+.wr{display:flex;justify-content:space-between;align-items:center;
+    padding:7px 0;border-bottom:1px solid var(--border);font-size:10px}
+.wr:last-child{border-bottom:none}
+.ci{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:5px;margin-bottom:4px;font-size:10px}
+.sb{padding:10px;border-radius:6px;font-size:11px;font-weight:700;text-align:center;margin-bottom:12px}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:12px;line-height:2}
+.err{text-align:center;padding:20px;color:var(--red);font-size:11px}
+.disc{text-align:center;font-size:8px;color:#334155;margin-top:16px;letter-spacing:1px;line-height:1.8}
+canvas{width:100%!important;display:block;border-radius:4px}
+.score-bar{height:6px;border-radius:3px;margin-top:6px;background:var(--bg3)}
+.score-fill{height:100%;border-radius:3px;transition:width 0.5s}
+.tf-section{margin-bottom:8px}
+.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:8px;line-height:1.6;border:1px solid}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<h1>⚡ EW STRATEGY V3</h1>
+<div class="sub">YOUR WAVE STRUCTURE · 18-POINT VALIDATION · MULTI-TIMEFRAME</div>
+
+<div class="row">
+  <input type="text" id="coinInput" placeholder="Search coin (bitcoin, xrp, solana...)"/>
+  <button class="btn" onclick="loadCoin()">GO</button>
+</div>
+
+<div class="row">
+  <button class="qc" onclick="quickLoad('bitcoin','BTC')">BTC</button>
+  <button class="qc" onclick="quickLoad('ripple','XRP')">XRP</button>
+  <button class="qc" onclick="quickLoad('ethereum','ETH')">ETH</button>
+  <button class="qc" onclick="quickLoad('solana','SOL')">SOL</button>
+  <button class="qc" onclick="quickLoad('binancecoin','BNB')">BNB</button>
+  <button class="qc" onclick="quickLoad('cardano','ADA')">ADA</button>
+</div>
+
+<div class="row">
+  <button class="mode active" id="mode-swing" onclick="setMode('swing')">📈 SWING</button>
+  <button class="mode" id="mode-scalp" onclick="setMode('scalp')">⚡ SCALP</button>
+</div>
+
+<div class="row tf-section" id="tf-row">
+  <button class="tf" onclick="setTF(30,this)">1M</button>
+  <button class="tf" onclick="setTF(90,this)">3M</button>
+  <button class="tf" onclick="setTF(180,this)">6M</button>
+  <button class="tf" onclick="setTF(365,this)">1Y</button>
+  <button class="tf" onclick="setTF(730,this)">2Y</button>
+  <button class="tf active" onclick="setTF('max',this)">MAX</button>
+</div>
+
+<div id="main"><div class="loading">🕌 Enter a coin to begin analysis.<br>Strategy based on your Elliott Wave structure.</div></div>
+
+<div class="disc">
+  FOR EDUCATIONAL PURPOSES ONLY · NOT FINANCIAL ADVICE<br>
+  SPOT TRADING ONLY · HALAL COINS · ALWAYS MANAGE YOUR RISK
+</div>
+
+<script>
+const KEY  = 'CG-DJnA8sWPRSUuF8Xz27Fhastn';
+const BASE = 'https://api.coingecko.com/api/v3';
+const SL   = 0.05;
+const TPS  = [0.05,0.10,0.15,0.20];
+
+let DAYS='max', COIN_ID='', DATA=[], INFO={}, MODE='swing';
+let TF_DAILY=[], TF_H4=[], TF_H1=[], VOLS=[];
+
+// ── MODES ──────────────────────────────────────────────────────
+function setMode(m){
+  MODE=m;
+  ['swing','scalp'].forEach(x=>{
+    document.getElementById('mode-'+x).classList.toggle('active',x===m);
+  });
+  const row = document.getElementById('tf-row');
+  if(m==='scalp'){
+    row.innerHTML=`
+      <button class="tf active" onclick="setTF(1,this)">1D</button>
+      <button class="tf" onclick="setTF(3,this)">3D</button>
+      <button class="tf" onclick="setTF(7,this)">1W</button>
+      <button class="tf" onclick="setTF(14,this)">2W</button>`;
+    DAYS=1;
+  } else {
+    row.innerHTML=`
+      <button class="tf" onclick="setTF(30,this)">1M</button>
+      <button class="tf" onclick="setTF(90,this)">3M</button>
+      <button class="tf" onclick="setTF(180,this)">6M</button>
+      <button class="tf" onclick="setTF(365,this)">1Y</button>
+      <button class="tf" onclick="setTF(730,this)">2Y</button>
+      <button class="tf active" onclick="setTF('max',this)">MAX</button>`;
+    DAYS='max';
+  }
+  if(COIN_ID) loadData(COIN_ID);
+}
+
+function setTF(d,btn){
+  DAYS=d;
+  document.querySelectorAll('.tf').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(COIN_ID) loadData(COIN_ID);
+}
+
+function quickLoad(id,sym){
+  document.getElementById('coinInput').value=sym;
+  COIN_ID=id; loadData(id);
+}
+
+async function loadCoin(){
+  const v=document.getElementById('coinInput').value.trim().toLowerCase();
+  if(!v) return;
+  show('<div class="loading">🔍 Searching...</div>');
+  try{
+    const r=await fetch(`${BASE}/search?query=${encodeURIComponent(v)}`,
+      {headers:{'x-cg-demo-api-key':KEY}});
+    const d=await r.json();
+    if(!d.coins||!d.coins.length){
+      show('<div class="err">❌ Coin not found. Try full name.</div>'); return;
+    }
+    COIN_ID=d.coins[0].id; loadData(COIN_ID);
+  }catch(e){show(`<div class="err">Search error: ${e.message}</div>`);}
+}
+
+async function loadData(id){
+  show('<div class="loading">📡 Loading multi-timeframe data...<br>Weekly · Daily · 4H · 1H</div>');
+  try{
+    const interval = DAYS<=7 ? 'hourly' : 'daily';
+    const [cr,ir,cr2,cr3] = await Promise.all([
+      fetch(`${BASE}/coins/${id}/market_chart?vs_currency=usd&days=${DAYS}&interval=${interval}`,
+        {headers:{'x-cg-demo-api-key':KEY}}),
+      fetch(`${BASE}/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false`,
+        {headers:{'x-cg-demo-api-key':KEY}}),
+      fetch(`${BASE}/coins/${id}/market_chart?vs_currency=usd&days=365&interval=daily`,
+        {headers:{'x-cg-demo-api-key':KEY}}),
+      fetch(`${BASE}/coins/${id}/market_chart?vs_currency=usd&days=max&interval=daily`,
+        {headers:{'x-cg-demo-api-key':KEY}}),
+    ]);
+    const cd=await cr.json(); INFO=await ir.json();
+    const cd2=await cr2.json(); const cd3=await cr3.json();
+
+    if(!cd.prices||!cd.prices.length){show('<div class="err">No price data.</div>');return;}
+
+    DATA  = cd.prices.map((p,i)=>({date:new Date(p[0]),price:p[1],vol:cd.total_volumes?.[i]?.[1]||0}));
+    TF_DAILY = cd2.prices?.map(p=>p[1])||[];
+    TF_H4    = cd3.prices?.map(p=>p[1])||[];
+    VOLS     = cd.total_volumes?.map(v=>v[1])||[];
+
+    render();
+  }catch(e){show(`<div class="err">API Error: ${e.message}</div>`);}
+}
+
+function show(h){document.getElementById('main').innerHTML=h;}
+
+// ── INDICATORS ─────────────────────────────────────────────────
+function rsi(prices,period=14){
+  if(prices.length<period+1) return 50;
+  let ag=0,al=0;
+  for(let i=1;i<=period;i++){const d=prices[i]-prices[i-1];d>0?ag+=d:al+=Math.abs(d);}
+  ag/=period; al/=period;
+  for(let i=period;i<prices.length;i++){
+    const d=prices[i]-prices[i-1];
+    const g=d>0?d:0, l=d<0?Math.abs(d):0;
+    ag=(ag*(period-1)+g)/period; al=(al*(period-1)+l)/period;
+  }
+  return al===0?100:100-(100/(1+ag/al));
+}
+
+function ema(prices,period){
+  if(prices.length<period) return [];
+  const k=2/(period+1); const r=[prices.slice(0,period).reduce((a,b)=>a+b)/period];
+  for(let i=period;i<prices.length;i++) r.push(prices[i]*k+r[r.length-1]*(1-k));
+  return r;
+}
+
+function macd(prices){
+  if(prices.length<35) return {cross:false,turning:false,hist:0,prev:0};
+  const ef=ema(prices,12),es=ema(prices,26),off=26-12;
+  const ml=es.map((_,i)=>ef[i+off]-es[i]);
+  if(ml.length<9) return {cross:false,turning:false,hist:0,prev:0};
+  const sl=ema(ml,9),diff=ml.length-sl.length;
+  const hist=sl.map((_,i)=>ml[i+diff]-sl[i]);
+  const h=hist[hist.length-1]||0,ph=hist[hist.length-2]||0;
+  return{cross:h>0&&ph<=0,turning:h>ph,hist:h,prev:ph,macd:ml[ml.length-1]||0};
+}
+
+function ewo(prices){
+  if(prices.length<35) return 0;
+  const ma5=prices.slice(-5).reduce((a,b)=>a+b)/5;
+  const ma35=prices.slice(-35).reduce((a,b)=>a+b)/35;
+  return ma5-ma35;
+}
+
+function volTrend(vols){
+  if(vols.length<10) return false;
+  const r=vols.slice(-5).reduce((a,b)=>a+b)/5;
+  const p=vols.slice(-10,-5).reduce((a,b)=>a+b)/5;
+  return r<p;
+}
+
+// ── WAVE DETECTION ─────────────────────────────────────────────
+function findPivots(prices,minMove=0.10){
+  const n=prices.length;
+  if(n<20) return [];
+  const win=Math.max(3,Math.floor(n/20));
+  const pivots=[];
+
+  for(let i=win;i<n-win;i++){
+    const sl=prices.slice(i-win,i+win+1);
+    const mx=Math.max(...sl),mn=Math.min(...sl);
+    if(prices[i]===mx&&prices[i]>prices[i-1]&&prices[i]>prices[i+1])
+      pivots.push({idx:i,price:prices[i],type:'peak'});
+    else if(prices[i]===mn&&prices[i]<prices[i-1]&&prices[i]<prices[i+1])
+      pivots.push({idx:i,price:prices[i],type:'trough'});
+  }
+
+  const st=prices[0]<prices[Math.min(10,n-1)]?'trough':'peak';
+  pivots.unshift({idx:0,price:prices[0],type:st});
+  pivots.push({idx:n-1,price:prices[n-1],type:'current'});
+
+  const sig=[pivots[0]];
+  for(let i=1;i<pivots.length;i++){
+    const prev=sig[sig.length-1],curr=pivots[i];
+    if(prev.type===curr.type){
+      if(curr.type==='peak'&&curr.price>prev.price) sig[sig.length-1]=curr;
+      else if(curr.type==='trough'&&curr.price<prev.price) sig[sig.length-1]=curr;
+      continue;
+    }
+    if(Math.abs((curr.price-prev.price)/prev.price)>=minMove) sig.push(curr);
+  }
+  return sig;
+}
+
+function validateEW(pivots){
+  const issues=[];
+  if(pivots.length<3) return{valid:false,issues:['Need more data']};
+  if(pivots.length>=3){
+    const w1s=pivots[0].price,w1e=pivots[1].price,w2e=pivots[2].price;
+    const w1r=Math.abs(w1e-w1s);
+    if(w1r>0){
+      const w2ret=Math.abs(w2e-w1e)/w1r*100;
+      if(w2e<w1s) issues.push('W2>100% W1');
+      else if(w2ret<38) issues.push(`W2 shallow(${w2ret.toFixed(0)}%)`);
+    }
+  }
+  if(pivots.length>=4){
+    const w1sz=Math.abs(pivots[1].price-pivots[0].price);
+    const w3sz=Math.abs(pivots[3].price-pivots[2].price);
+    if(w3sz<w1sz) issues.push('W3<W1');
+  }
+  if(pivots.length>=5){
+    if(pivots[4].price<pivots[1].price) issues.push('W4 overlaps W1');
+  }
+  return{valid:issues.length===0,issues};
+}
+
+function labelWaves(pivots){
+  const labels=['W1','W2','W3','W4','W5','Wave A','Wave B','Wave C'];
+  return pivots.slice(0,8).map((p,i)=>({
+    ...p,
+    label: labels[i]||`P${i+1}`,
+    color: p.type==='peak'?'#22c55e':p.type==='trough'?'#ef4444':'#f0b429'
+  }));
+}
+
+// ── FIBONACCI ──────────────────────────────────────────────────
+function calcFibs(waves){
+  if(waves.length<2) return[];
+  const prices=waves.map(w=>w.price);
+  const high=Math.max(...prices),low=Math.min(...prices),rng=high-low;
+  const fibs=[];
+  [0.236,0.382,0.500,0.618,0.786].forEach(r=>{
+    fibs.push({r,price:high-rng*r,label:`${(r*100).toFixed(1)}%`,ext:false});
+  });
+  if(waves.length>=3){
+    const w1sz=Math.abs(waves[1].price-waves[0].price);
+    const base=waves[waves.length-1].price;
+    [1.618,2.618].forEach(r=>{
+      fibs.push({r,price:base+w1sz*r,label:`${r}×`,ext:true});
+    });
+  }
+  return fibs;
+}
+
+// ── 18-POINT CHECKLIST ─────────────────────────────────────────
+function buildChecklist(waves,ewResult,pctATH,rsiVal,macdRes,ewoVal,volDec){
+  const entry=detectEntry(waves);
+  const prices=DATA.map(d=>d.price);
+  const ma50=prices.length>=50?prices.slice(-50).reduce((a,b)=>a+b)/50:prices[prices.length-1];
+  const daily_bull=prices[prices.length-1]>ma50||pctATH<-50;
+  const tf_daily=TF_DAILY.length>0;
+  const tf_ma50_daily=TF_DAILY.length>=50?TF_DAILY.slice(-50).reduce((a,b)=>a+b)/50:TF_DAILY[TF_DAILY.length-1]||0;
+  const weekly_bull=TF_H4.length>0?TF_H4[TF_H4.length-1]>tf_ma50_daily:daily_bull;
+
+  return [
+    {id:1, l:'Weekly Macro Bullish',        ok:weekly_bull,         cat:'TF'},
+    {id:2, l:'Daily Trend Bullish',          ok:daily_bull,          cat:'TF'},
+    {id:3, l:'4H Structure Aligned',         ok:tf_daily,            cat:'TF'},
+    {id:4, l:'Golden Rule — All TF Aligned', ok:weekly_bull&&daily_bull, cat:'TF'},
+    {id:5, l:'5-Wave Impulse Detected',      ok:waves.length>=5,     cat:'EW'},
+    {id:6, l:'EW Rules Valid (W2,W3,W4)',    ok:ewResult.valid,      cat:'EW'},
+    {id:7, l:'W2 or W4 Entry Zone',          ok:entry!=='',          cat:'EW'},
+    {id:8, l:'Price -40%+ from ATH',         ok:pctATH<-40,          cat:'Price'},
+    {id:9, l:'Price -60%+ from ATH (Deep)',  ok:pctATH<-60,          cat:'Price'},
+    {id:10,l:'Fibonacci 0.382–0.786 Hit',    ok:pctATH<-38&&pctATH>-90, cat:'Fib'},
+    {id:11,l:'RSI Below 45',                 ok:rsiVal<45,           cat:'Mom'},
+    {id:12,l:'MACD Bullish Cross/Turning',   ok:macdRes.cross||macdRes.turning, cat:'Mom'},
+    {id:13,l:'EW Oscillator Signal',         ok:ewoVal!==0,          cat:'Mom'},
+    {id:14,l:'Volume Declining (Correction)',ok:volDec,              cat:'Vol'},
+    {id:15,l:'Volume Expanding (Reversal)',  ok:VOLS.length>0&&VOLS[VOLS.length-1]>VOLS.slice(-5).reduce((a,b)=>a+b)/5, cat:'Vol'},
+    {id:16,l:'Volume Confirms Structure',    ok:volDec||VOLS.length>0, cat:'Vol'},
+    {id:17,l:'ABC Correction Structure',     ok:waves.length>=6,     cat:'Struct'},
+    {id:18,l:'No W1/W4 Overlap Violation',  ok:ewResult.valid,      cat:'Struct'},
+  ];
+}
+
+function detectEntry(waves){
+  if(waves.length<3) return '';
+  const w1r=Math.abs(waves[1].price-waves[0].price);
+  if(w1r>0){
+    const w2r=Math.abs(waves[2].price-waves[1].price)/w1r*100;
+    if(w2r>=38&&w2r<=100) return 'W2';
+  }
+  if(waves.length>=5){
+    const w3r=Math.abs(waves[3].price-waves[2].price);
+    if(w3r>0){
+      const w4r=Math.abs(waves[4].price-waves[3].price)/w3r*100;
+      if(w4r>=23&&w4r<=38&&waves[4].price>waves[1].price) return 'W4';
+    }
+  }
+  return '';
+}
+
+// ── CHART DRAWING ──────────────────────────────────────────────
+function drawPrice(prices,vols,waves,fibs,current,sl,tps){
+  const c=document.getElementById('priceChart');
+  if(!c) return;
+  const ctx=c.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=c.offsetWidth,H=260;
+  c.width=W*dpr;c.height=H*dpr;c.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  const P={t:16,r:60,b:24,l:60};
+  const cW=W-P.l-P.r,cH=H-P.t-P.b;
+  const mn=Math.min(...prices)*0.97,mx=Math.max(...prices)*1.03,rng=mx-mn;
+  const xS=i=>P.l+(i/(prices.length-1))*cW;
+  const yS=p=>P.t+cH-((p-mn)/rng)*cH;
+
+  ctx.fillStyle='#080c14';ctx.fillRect(0,0,W,H);
+
+  // Grid
+  for(let i=0;i<=5;i++){
+    const y=P.t+(i/5)*cH,price=mx-(i/5)*rng;
+    ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();
+    ctx.fillStyle='#475569';ctx.font='9px monospace';ctx.textAlign='right';
+    ctx.fillText(fp(price),P.l-3,y+3);
+  }
+
+  // X labels
+  const step=Math.max(1,Math.floor(prices.length/5));
+  for(let i=0;i<DATA.length;i+=step){
+    const d=DATA[i].date;
+    let label=DAYS<=7?d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):
+              DAYS<=30?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):
+              d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+    ctx.fillStyle='#334155';ctx.font='8px monospace';ctx.textAlign='center';
+    ctx.fillText(label,xS(i),H-4);
+  }
+
+  // Fib levels
+  fibs.forEach(f=>{
+    const y=yS(f.price);
+    if(y<P.t||y>P.t+cH) return;
+    ctx.strokeStyle=f.ext?'#22c55e44':'#3b82f644';
+    ctx.lineWidth=0.8;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=f.ext?'#22c55e':'#3b82f6';
+    ctx.font='7px monospace';ctx.textAlign='left';
+    ctx.fillText(f.label+' '+fp(f.price),P.l+cW+2,y+3);
+  });
+
+  // SL line
+  const slY=yS(sl);
+  if(slY>=P.t&&slY<=P.t+cH){
+    ctx.strokeStyle='#ef444466';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(P.l,slY);ctx.lineTo(P.l+cW,slY);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#ef4444';ctx.font='bold 8px monospace';ctx.textAlign='left';
+    ctx.fillText('SL',P.l+cW+2,slY+3);
+  }
+
+  // TP lines
+  tps.forEach((tp,i)=>{
+    const y=yS(tp);
+    if(y<P.t||y>P.t+cH) return;
+    ctx.strokeStyle='#22c55e44';ctx.lineWidth=0.8;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#22c55e';ctx.font='bold 8px monospace';ctx.textAlign='left';
+    ctx.fillText(`TP${i+1}`,P.l+cW+2,y+3);
+  });
+
+  // Area
+  const gr=ctx.createLinearGradient(0,P.t,0,P.t+cH);
+  gr.addColorStop(0,'rgba(240,180,41,0.18)');gr.addColorStop(1,'rgba(240,180,41,0.01)');
+  ctx.beginPath();
+  prices.forEach((_,i)=>i===0?ctx.moveTo(xS(i),yS(prices[i])):ctx.lineTo(xS(i),yS(prices[i])));
+  ctx.lineTo(xS(prices.length-1),P.t+cH);ctx.lineTo(xS(0),P.t+cH);
+  ctx.closePath();ctx.fillStyle=gr;ctx.fill();
+
+  // Price line
+  ctx.beginPath();ctx.strokeStyle='#f0b429';ctx.lineWidth=2;
+  prices.forEach((_,i)=>i===0?ctx.moveTo(xS(i),yS(prices[i])):ctx.lineTo(xS(i),yS(prices[i])));
+  ctx.stroke();
+
+  // Wave lines
+  if(waves.length>1){
+    ctx.beginPath();ctx.strokeStyle='rgba(240,180,41,0.4)';
+    ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    waves.forEach((w,i)=>i===0?ctx.moveTo(xS(w.idx),yS(w.price)):ctx.lineTo(xS(w.idx),yS(w.price)));
+    ctx.stroke();ctx.setLineDash([]);
+  }
+
+  // Wave labels
+  waves.forEach(w=>{
+    const x=xS(w.idx),y=yS(w.price);
+    const top=w.type==='peak',off=top?-22:22;
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle=w.color;ctx.fill();
+    ctx.strokeStyle='#000';ctx.lineWidth=0.5;ctx.stroke();
+    ctx.fillStyle=w.color;ctx.fillRect(x-17,y+off-9,34,16);
+    ctx.fillStyle='#000';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText(w.label,x,y+off+3);
+    ctx.fillStyle=w.color;ctx.font='7px monospace';
+    ctx.fillText(fp(w.price),x,y+off+(top?-13:19));
+  });
+}
+
+function drawIndicator(canvasId,values,color,label,H=65,min0=false,max100=false){
+  const c=document.getElementById(canvasId);
+  if(!c||!values.length) return;
+  const ctx=c.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=c.offsetWidth;
+  c.width=W*dpr;c.height=H*dpr;c.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  const P={t:4,r:40,b:16,l:48};
+  const cW=W-P.l-P.r,cH=H-P.t-P.b;
+  const mn=min0?0:Math.min(...values)*0.95;
+  const mx=max100?100:Math.max(...values)*1.05;
+  const rng=mx-mn||1;
+  const xS=i=>P.l+(i/(values.length-1))*cW;
+  const yS=v=>P.t+cH-((v-mn)/rng)*cH;
+
+  ctx.fillStyle='#080c14';ctx.fillRect(0,0,W,H);
+
+  // RSI zones
+  if(label==='RSI'){
+    ctx.fillStyle='#ef444408';ctx.fillRect(P.l,P.t,cW,yS(70)-P.t);
+    ctx.fillStyle='#22c55e08';ctx.fillRect(P.l,yS(30),cW,P.t+cH-yS(30));
+    [30,50,70].forEach(v=>{
+      const y=yS(v);
+      ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();
+      ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';
+      ctx.fillText(v,P.l-3,y+3);
+    });
+  }
+
+  // Zero line for MACD/EWO
+  if(label==='MACD'||label==='EWO'){
+    const y0=yS(0);
+    if(y0>=P.t&&y0<=P.t+cH){
+      ctx.strokeStyle='#334155';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(P.l,y0);ctx.lineTo(P.l+cW,y0);ctx.stroke();
+    }
+    // Histogram bars for MACD
+    if(label==='MACD'){
+      const bw=Math.max(1,cW/values.length-0.5);
+      const y0=yS(0);
+      values.forEach((v,i)=>{
+        const x=xS(i),y=yS(v);
+        ctx.fillStyle=v>=0?'#22c55e55':'#ef444455';
+        ctx.fillRect(x-bw/2,Math.min(y,y0),bw,Math.abs(y-y0));
+      });
+    }
+  }
+
+  // Volume bars
+  if(label==='VOL'){
+    const bw=Math.max(1,cW/values.length-0.5);
+    values.forEach((v,i)=>{
+      const x=xS(i),h=(v/mx)*cH;
+      const up=i>0&&DATA[i]?.price>=DATA[i-1]?.price;
+      ctx.fillStyle=up?'#22c55e44':'#ef444444';
+      ctx.fillRect(x-bw/2,P.t+cH-h,bw,h);
+    });
+    ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';
+    ctx.fillText('VOL',P.l-3,P.t+8);
+    return;
+  }
+
+  // Line
+  ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=1.5;
+  let first=true;
+  values.forEach((v,i)=>{
+    if(v===null||v===undefined) return;
+    first?ctx.moveTo(xS(i),yS(v)):ctx.lineTo(xS(i),yS(v));
+    first=false;
+  });
+  ctx.stroke();
+
+  // Current value label
+  const last=values[values.length-1];
+  ctx.fillStyle=color;ctx.font='bold 9px monospace';ctx.textAlign='left';
+  ctx.fillText(`${label} ${last?.toFixed?.(1)||''}`,P.l+cW+2,P.t+cH/2+3);
+  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';
+  ctx.fillText(label,P.l-3,P.t+8);
+}
+
+// ── FORMAT ─────────────────────────────────────────────────────
+function fp(p){
+  if(!p&&p!==0) return'N/A';
+  if(p>=1000) return'$'+p.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(p>=1)    return'$'+p.toFixed(4);
+  if(p>=0.01) return'$'+p.toFixed(5);
+  return'$'+p.toFixed(7);
+}
+function fpc(p){return(p>=0?'+':'')+p.toFixed(1)+'%';}
+
+// ── RENDER ─────────────────────────────────────────────────────
+function render(){
+  const prices = DATA.map(d=>d.price);
+  const vols   = DATA.map(d=>d.vol);
+  const current = prices[prices.length-1];
+  const ath  = INFO?.market_data?.ath?.usd||Math.max(...prices,...TF_H4);
+  const atl  = INFO?.market_data?.atl?.usd||Math.min(...prices);
+  const chg  = INFO?.market_data?.price_change_percentage_24h||0;
+  const name = INFO?.name||COIN_ID.toUpperCase();
+  const sym  = INFO?.symbol?.toUpperCase()||'';
+  const pctATH = ((current-ath)/ath)*100;
+
+  // Indicators
+  const rsiVal  = rsi(prices);
+  const macdRes = macd(prices);
+  const ewoVal  = ewo(prices);
+  const volDec  = volTrend(vols);
+
+  // EMA for MACD display
+  const ef=ema(prices,12),es=ema(prices,26),off=26-12;
+  const macdLine=es.map((_,i)=>ef[i+off]-es[i]);
+  const sigLine=ema(macdLine,9);
+  const macdDiff=macdLine.length-sigLine.length;
+  const histLine=sigLine.map((_,i)=>macdLine[i+macdDiff]-sigLine[i]);
+
+  // Waves
+  const sens = DAYS<=7?0.03:DAYS<=30?0.05:0.10;
+  const pivots = findPivots(prices,sens);
+  const ewResult = validateEW(pivots);
+  const waves  = labelWaves(pivots);
+  const fibs   = calcFibs(waves);
+  const entry  = detectEntry(waves);
+
+  // Checklist
+  const checks = buildChecklist(waves,ewResult,pctATH,rsiVal,macdRes,ewoVal,volDec);
+  const score  = checks.filter(c=>c.ok).length;
+  const cats   = ['TF','EW','Price','Fib','Mom','Vol','Struct'];
+
+  // Signal levels
+  const sl  = current*(1-0.05);
+  const tp1 = current*(1+0.05);
+  const tp2 = current*(1+0.10);
+  const tp3 = current*(1+0.15);
+  const tp4 = current*(1+0.20);
+
+  // Status
+  let status,statusColor;
+  if(score>=15){status='🟢 STRONG SIGNAL — High Confidence';statusColor='#22c55e';}
+  else if(score>=12){status='🟡 WATCH — Medium-High Confidence';statusColor='#f0b429';}
+  else if(score>=9){status='🟠 DEVELOPING — Medium Confidence';statusColor='#f97316';}
+  else{status='🔴 NO SIGNAL — Wait';statusColor='#ef4444';}
+
+  // Alternate count
+  let alternate='';
+  if(!ewResult.valid) alternate='⚠️ Alternate: ABC zigzag correction in progress';
+  else if(pctATH<-70) alternate='📌 Alternate: Extended W2 — deep accumulation zone';
+  else if(pctATH<-40) alternate='📌 Alternate: W4 correction within larger W3';
+
+  // EWO description
+  const ewoDesc = ewoVal>0?'Bullish momentum':'Bearish momentum';
+
+  show(`
+<div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:12px">
+  ${name} (${sym}) · ${MODE.toUpperCase()} MODE · ${DAYS==='max'?'MAX':DAYS+'D'} HISTORY
+</div>
+
+<!-- Price Card -->
+<div class="card">
+  <div class="ph">
+    <div>
+      <div class="ct">LIVE PRICE</div>
+      <div class="price-big">${fp(current)}</div>
+      <div style="font-size:11px;color:${chg>=0?'var(--green)':'var(--red)'};margin-top:2px">
+        ${fpc(chg)} 24H
+      </div>
+    </div>
+    <div style="text-align:right;font-size:10px;color:var(--muted);line-height:2">
+      <div>ATH: <span style="color:var(--gold)">${fp(ath)}</span></div>
+      <div>ATL: <span style="color:var(--muted)">${fp(atl)}</span></div>
+      <div>From ATH: <span style="color:var(--red)">${fpc(pctATH)}</span></div>
+      <div>RSI: <span style="color:${rsiVal<30?'var(--green)':rsiVal>70?'var(--red)':'var(--orange)'}">
+        ${rsiVal.toFixed(1)}
+      </span></div>
+      <div>EWO: <span style="color:${ewoVal>0?'var(--green)':'var(--red)'}">
+        ${ewoDesc}
+      </span></div>
+      ${entry?`<div>Zone: <span style="color:var(--green)">${entry} Bottom</span></div>`:''}
+    </div>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="card" style="padding:10px">
+  <div class="ct">PRICE + WAVES + FIBONACCI + SIGNAL LEVELS</div>
+  <canvas id="priceChart"></canvas>
+</div>
+
+<!-- RSI -->
+<div class="card" style="padding:8px">
+  <canvas id="rsiChart"></canvas>
+</div>
+
+<!-- MACD -->
+<div class="card" style="padding:8px">
+  <canvas id="macdChart"></canvas>
+</div>
+
+<!-- EWO -->
+<div class="card" style="padding:8px">
+  <canvas id="ewoChart"></canvas>
+</div>
+
+<!-- Volume -->
+<div class="card" style="padding:8px">
+  <canvas id="volChart"></canvas>
+</div>
+
+<!-- Signal Status -->
+<div class="sb" style="background:${statusColor}18;border:1px solid ${statusColor}44;color:${statusColor}">
+  ${status}
+</div>
+
+<!-- Golden Rule -->
+<div class="alert" style="border-color:#3b82f633;color:#3b82f6;background:#3b82f608">
+  📐 <b>GOLDEN RULE:</b> ${MODE==='scalp'?
+    'SCALP — Only long when Daily + 4H + 1H all bullish':
+    'SWING — Weekly + Daily must align before entry'}
+</div>
+
+${alternate?`<div class="alert" style="border-color:#f0b42933;color:#f0b429;background:#f0b42908">
+  ${alternate}
+</div>`:''}
+
+<!-- Signal Levels -->
+<div class="card">
+  <div class="ct">SIGNAL LEVELS</div>
+  <div class="g2">
+    <div class="si" style="border-color:#22c55e33;grid-column:1/-1">
+      <div class="sl-">ENTRY ZONE</div>
+      <div class="sv" style="color:var(--green)">${fp(current*0.99)} – ${fp(current*1.01)}</div>
+    </div>
+    <div class="si" style="border-color:#f0b42933">
+      <div class="sl-">TP1 (+5%)</div>
+      <div class="sv" style="color:var(--gold)">${fp(tp1)}</div>
+    </div>
+    <div class="si" style="border-color:#f0b42933">
+      <div class="sl-">TP2 (+10%)</div>
+      <div class="sv" style="color:var(--gold)">${fp(tp2)}</div>
+    </div>
+    <div class="si" style="border-color:#f0b42933">
+      <div class="sl-">TP3 (+15%)</div>
+      <div class="sv" style="color:var(--gold)">${fp(tp3)}</div>
+    </div>
+    <div class="si" style="border-color:#f0b42933">
+      <div class="sl-">TP4 (+20%)</div>
+      <div class="sv" style="color:var(--gold)">${fp(tp4)}</div>
+    </div>
+    <div class="si" style="border-color:#ef444433;grid-column:1/-1">
+      <div class="sl-">STOP LOSS (-5%)</div>
+      <div class="sv" style="color:var(--red)">${fp(sl)}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Wave Count -->
+<div class="card">
+  <div class="ct">WAVE COUNT — YOUR EW STRUCTURE</div>
+  ${waves.map(w=>`
+    <div class="wr">
+      <span style="color:${w.color};font-weight:900;min-width:60px">${w.label}</span>
+      <span style="color:var(--muted);font-size:9px">${w.date?.toLocaleDateString('en-US',{month:'short',year:'numeric'})||''}</span>
+      <span style="font-weight:700">${fp(w.price)}</span>
+      <span style="font-size:9px;color:${w.type==='peak'?'var(--green)':w.type==='trough'?'var(--red)':'var(--gold)'}">
+        ${w.type==='peak'?'▲ TOP':w.type==='trough'?'▼ BOT':'● NOW'}
+      </span>
+    </div>
+  `).join('')}
+  ${!ewResult.valid?`<div style="font-size:10px;color:var(--red);margin-top:8px;padding:6px;background:#ef444411;border-radius:4px">
+    ⚠️ EW Issues: ${ewResult.issues.join(' · ')}
+  </div>`:'<div style="font-size:10px;color:var(--green);margin-top:8px">✅ All EW Rules Valid</div>'}
+</div>
+
+<!-- 18-Point Checklist -->
+<div class="card">
+  <div class="ct">18-POINT CHECKLIST — ${score}/18</div>
+  <div class="score-bar">
+    <div class="score-fill" style="width:${(score/18*100).toFixed(0)}%;
+      background:${score>=15?'var(--green)':score>=12?'var(--gold)':score>=9?'var(--orange)':'var(--red)'}">
+    </div>
+  </div>
+  <div style="margin:8px 0 12px;font-size:10px;color:var(--muted)">
+    ${cats.map(cat=>{
+      const catChecks=checks.filter(c=>c.cat===cat);
+      const catScore=catChecks.filter(c=>c.ok).length;
+      return `<span style="color:${catScore===catChecks.length?'var(--green)':catScore>0?'var(--gold)':'var(--red)'};margin-right:8px">
+        ${cat} ${catScore}/${catChecks.length}
+      </span>`;
+    }).join('')}
+  </div>
+  ${checks.map(c=>`
+    <div class="ci" style="background:${c.ok?'#22c55e0d':'#ef44440d'};border:1px solid ${c.ok?'#22c55e22':'#ef444422'}">
+      <span style="font-size:13px;min-width:20px">${c.ok?'✅':'❌'}</span>
+      <span style="color:${c.ok?'var(--text)':'var(--muted)'};flex:1">${c.l}</span>
+      <span style="font-size:9px;color:var(--sub)">${c.cat}</span>
+    </div>
+  `).join('')}
+  <div style="margin-top:10px;padding:10px;border-radius:6px;text-align:center;font-size:12px;font-weight:700;
+    background:${score>=15?'#22c55e11':score>=12?'#f0b42911':score>=9?'#f9731611':'#ef444411'};
+    border:1px solid ${score>=15?'#22c55e33':score>=12?'#f0b42933':score>=9?'#f9731633':'#ef444433'};
+    color:${score>=15?'var(--green)':score>=12?'var(--gold)':score>=9?'var(--orange)':'var(--red)'}">
+    ${score>=15?'🔥 HIGH CONFIDENCE — Full position size':
+      score>=12?'⚡ MEDIUM-HIGH — 75% position size':
+      score>=9?'✳️ MEDIUM — 50% position size':
+      '🚫 LOW — Skip this trade. Wait for better setup.'}
+  </div>
+</div>
+
+<!-- Your Wave Structure Reference -->
+<div class="card">
+  <div class="ct">YOUR WAVE STRUCTURE — REFERENCE</div>
+  <div style="font-size:10px;color:var(--muted);line-height:2">
+    <div>🔷 <b style="color:var(--gold)">Grand:</b> W1($0.01→$69K) W2($69K→$15.4K) W3($15.4K→ongoing)</div>
+    <div>🔷 <b style="color:var(--gold)">W3 Internal:</b> W1ofW3($15.4K→$126.2K) W2ofW3(correcting)</div>
+    <div>🔷 <b style="color:var(--gold)">W2ofW3:</b> A($126.2K→$74.5K) B($74.5K→$95.8K) C(unfolding)</div>
+    <div style="margin-top:6px;color:var(--sub)">
+      Re-entry rule: If you miss W2 bottom → wait for W4 (23–38% retrace of W3)
+    </div>
+  </div>
+</div>
+`);
+
+  // Draw all charts
+  requestAnimationFrame(()=>{
+    drawPrice(prices,vols,waves,fibs,current,sl,[tp1,tp2,tp3,tp4]);
+
+    // RSI values
+    const rsiValues=[];
+    for(let i=14;i<prices.length;i++) rsiValues.push(rsi(prices.slice(0,i+1)));
+    drawIndicator('rsiChart',rsiValues,'#f97316','RSI',70,true,true);
+
+    // MACD histogram
+    drawIndicator('macdChart',histLine,'#3b82f6','MACD',70);
+
+    // EWO
+    const ewoValues=[];
+    for(let i=35;i<prices.length;i++){
+      const sl=prices.slice(i-34,i+1);
+      const m5=sl.slice(-5).reduce((a,b)=>a+b)/5;
+      const m35=sl.reduce((a,b)=>a+b)/35;
+      ewoValues.push(m5-m35);
+    }
+    drawIndicator('ewoChart',ewoValues,'#a855f7','EWO',65);
+
+    // Volume
+    drawIndicator('volChart',vols,'#64748b','VOL',55,true);
+  });
+}
+
+document.getElementById('coinInput').addEventListener('keypress',e=>{
+  if(e.key==='Enter') loadCoin();
+});
+
+// Auto-load BTC on start
+quickLoad('bitcoin','BTC');
+</script>
+</body>
+</html>
+ENDOFFILE
+echo "App done"
