@@ -222,7 +222,8 @@ function calcEWO(prices) {
   return m5/5 - m35/35;
 }
 
-function findPivots(prices) {
+function findPivots(prices, minMove) {
+  minMove = minMove || 0.10;
   var n = prices.length, win = Math.max(3, Math.floor(n/20));
   var pivots = [], i, sl, mx, mn;
   for (i = win; i < n - win; i++) {
@@ -245,7 +246,7 @@ function findPivots(prices) {
       continue;
     }
     move = Math.abs((curr.price - prev.price) / prev.price);
-    if (move >= 0.08) sig.push(curr);
+    if (move >= minMove) sig.push(curr);
   }
   return sig;
 }
@@ -284,7 +285,16 @@ function renderPage() {
   var rsiVal = calcRSI(prices);
   var macdRes = calcMACD(prices);
   var ewoVal = calcEWO(prices);
-  var pivots = findPivots(prices);
+  // Sensitivity: smaller moves for scalp, larger for swing
+  // Scalp 1H: 3% minimum move between pivots
+  // Swing 4H: 5-8% minimum move
+  // Swing Daily/Weekly: 10-15% minimum move
+  var sensitivity;
+  if (mode === 'scalp') sensitivity = 0.03;
+  else if (parseInt(days) <= 90) sensitivity = 0.06;
+  else if (parseInt(days) <= 365) sensitivity = 0.10;
+  else sensitivity = 0.15;
+  var pivots = findPivots(prices, sensitivity);
   var ewRes = validateEW(pivots);
   var entry = detectEntry(pivots);
   var labels = ['W1','W2','W3','W4','W5','Wave A','Wave B','Wave C'];
