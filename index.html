@@ -148,7 +148,7 @@ async function loadCoin(){
   if(!v) return;
   show('<div class="loading">🔍 Searching...</div>');
   try{
-    const r=await fetch(`${CG}/search?query=${encodeURIComponent(v)}&x_cg_demo_api_key=${KEY}`,
+    const r=await fetch(`${CG}/search?query=${encodeURIComponent(v)}&x_cg_demo_api_key=${KEY}`
       ;
     const d=await r.json();
     if(!d.coins||!d.coins.length){
@@ -163,14 +163,10 @@ async function loadData(id){
   try{
     const interval = DAYS<=7 ? 'hourly' : 'daily';
     const [cr,ir,cr2,cr3] = await Promise.all([
-      fetch(`${CG}/coins/${id}/market_chart?vs_currency=usd&days=${DAYS}&interval=${interval}&x_cg_demo_api_key=${KEY}`,
-        ,
-      fetch(`${CG}/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false&x_cg_demo_api_key=${KEY}`,
-        ,
-      fetch(`${CG}/coins/${id}/market_chart?vs_currency=usd&days=365&interval=daily&x_cg_demo_api_key=${KEY}`,
-        ,
-      fetch(`${CG}/coins/${id}/market_chart?vs_currency=usd&days=max&interval=daily&x_cg_demo_api_key=${KEY}`,
-        ,
+      fetch(`${CG}/coins/${id}/market_chart?vs_currency=usd&days=${DAYS}&interval=${interval}&x_cg_demo_api_key=${KEY}`),
+      fetch(`${CG}/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false&x_cg_demo_api_key=${KEY}`),
+      fetch(`${CG}/coins/${id}/market_chart?vs_currency=usd&days=365&interval=daily&x_cg_demo_api_key=${KEY}`),
+      fetch(`${CG}/coins/${id}/market_chart?vs_currency=usd&days=max&interval=daily&x_cg_demo_api_key=${KEY}`),
     ]);
     const cd=await cr.json(); INFO=await ir.json();
     const cd2=await cr2.json(); const cd3=await cr3.json();
