@@ -84,6 +84,10 @@ canvas{width:100%!important;display:block;border-radius:4px}
 <div class="disc">FOR EDUCATIONAL PURPOSES ONLY · NOT FINANCIAL ADVICE<br>SPOT TRADING ONLY · HALAL COINS · ALWAYS MANAGE YOUR RISK</div>
 
 <script>
+window.onerror = function(msg, url, line) {
+  document.getElementById('main').innerHTML = '<div style="color:red;padding:20px;font-size:12px">JS Error line ' + line + ': ' + msg + '</div>';
+  return true;
+};
 var KEY = 'CG-DJnA8sWPRSUuF8Xz27Fhastn';
 var CG  = 'https://api.coingecko.com/api/v3';
 var SL  = 0.05;
@@ -172,30 +176,39 @@ function searchCoin(q) {
 
 // ── LOAD DATA ──────────────────────────────────────────────────
 function loadData(id) {
-  show('<div class="info">Loading data for ' + id + '...<br>Please wait</div>');
+  show('<div class="info">Loading ' + id + '...<br>Please wait</div>');
   var interval = (state.days <= 7) ? 'hourly' : 'daily';
   var days = state.days;
+  var url1 = CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=' + days + '&interval=' + interval + '&x_cg_demo_api_key=' + KEY;
+  var url2 = CG + '/coins/' + id + '?localization=false&tickers=false&community_data=false&developer_data=false&x_cg_demo_api_key=' + KEY;
+  var url3 = CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=max&interval=daily&x_cg_demo_api_key=' + KEY;
 
-  Promise.all([
-    fetch(CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=' + days + '&interval=' + interval + '&x_cg_demo_api_key=' + KEY).then(function(r) { return r.json(); }),
-    fetch(CG + '/coins/' + id + '?localization=false&tickers=false&community_data=false&developer_data=false&x_cg_demo_api_key=' + KEY).then(function(r) { return r.json(); }),
-    fetch(CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=365&interval=daily&x_cg_demo_api_key=' + KEY).then(function(r) { return r.json(); }),
-    fetch(CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=max&interval=daily&x_cg_demo_api_key=' + KEY).then(function(r) { return r.json(); })
-  ]).then(function(results) {
-    var cd = results[0], info = results[1], cd2 = results[2], cd3 = results[3];
-    if (!cd.prices || !cd.prices.length) {
-      show('<div class="err">No price data found for this coin.</div>');
-      return;
-    }
-    state.data  = cd.prices.map(function(p, i) { return { date: new Date(p[0]), price: p[1], vol: cd.total_volumes && cd.total_volumes[i] ? cd.total_volumes[i][1] : 0 }; });
-    state.info  = info;
-    state.vols  = cd.total_volumes ? cd.total_volumes.map(function(v) { return v[1]; }) : [];
-    state.daily = cd2.prices ? cd2.prices.map(function(p) { return p[1]; }) : [];
-    state.weekly= cd3.prices ? cd3.prices.map(function(p) { return p[1]; }) : [];
-    render();
-  }).catch(function(e) {
-    show('<div class="err">API Error: ' + e.message + '<br>Please try again.</div>');
-  });
+  fetch(url1)
+    .then(function(r) { return r.json(); })
+    .then(function(cd) {
+      if (!cd.prices || !cd.prices.length) {
+        show('<div class="err">No price data found.</div>'); return;
+      }
+      state.data = cd.prices.map(function(p,i) {
+        return { date: new Date(p[0]), price: p[1], vol: cd.total_volumes && cd.total_volumes[i] ? cd.total_volumes[i][1] : 0 };
+      });
+      state.vols = cd.total_volumes ? cd.total_volumes.map(function(v){return v[1];}) : [];
+      state.daily = state.data.map(function(d){return d.price;});
+      state.weekly = state.data.map(function(d){return d.price;});
+      state.info = {};
+      render();
+      fetch(url2).then(function(r){return r.json();}).then(function(info){
+        state.info = info;
+        render();
+      }).catch(function(){});
+      fetch(url3).then(function(r){return r.json();}).then(function(cd3){
+        if(cd3.prices) state.weekly = cd3.prices.map(function(p){return p[1];});
+        render();
+      }).catch(function(){});
+    })
+    .catch(function(e) {
+      show('<div class="err">Error: ' + e.message + '</div>');
+    });
 }
 
 // ── INDICATORS ─────────────────────────────────────────────────
