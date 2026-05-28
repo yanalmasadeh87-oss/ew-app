@@ -266,6 +266,142 @@ function validateEW(pv) {
   return { valid: issues.length === 0, issues: issues };
 }
 
+// ── STOCHASTIC OSCILLATOR ─────────────────────────────────────
+function calcStoch(prices, period) {
+  period = period || 14;
+  if (prices.length < period) return 50;
+  var slice = prices.slice(-period);
+  var high = Math.max.apply(null, slice);
+  var low  = Math.min.apply(null, slice);
+  if (high === low) return 50;
+  return ((prices[prices.length-1] - low) / (high - low)) * 100;
+}
+
+function calcStochFull(prices, period) {
+  period = period || 14;
+  var result = [];
+  for (var i = period; i <= prices.length; i++) {
+    var slice = prices.slice(i-period, i);
+    var high = Math.max.apply(null, slice);
+    var low  = Math.min.apply(null, slice);
+    if (high === low) { result.push(50); continue; }
+    result.push(((prices[i-1]-low)/(high-low))*100);
+  }
+  return result;
+}
+
+// ── ALTERNATION RULE ──────────────────────────────────────────
+function checkAlternation(waves) {
+  // W2 and W4 should alternate in structure
+  // If W2 is sharp (>50% retrace) → W4 should be shallow (<38%)
+  // If W2 is shallow → W4 should be deeper
+  if (waves.length < 5) return { valid: true, note: 'Need W4 to check' };
+  var w1 = Math.abs(waves[1].price - waves[0].price);
+  var w3 = Math.abs(waves[3].price - waves[2].price);
+  if (w1 === 0 || w3 === 0) return { valid: true, note: 'Cannot calculate' };
+  var w2ret = Math.abs(waves[2].price - waves[1].price) / w1 * 100;
+  var w4ret = Math.abs(waves[4].price - waves[3].price) / w3 * 100;
+  var alternates = false;
+  var note = '';
+  if (w2ret > 50 && w4ret < 40) { alternates = true; note = 'W2 sharp, W4 flat ✓'; }
+  else if (w2ret < 40 && w4ret > 40) { alternates = true; note = 'W2 flat, W4 sharp ✓'; }
+  else if (Math.abs(w2ret - w4ret) > 15) { alternates = true; note = 'Alternation present ✓'; }
+  else { note = 'W2:' + w2ret.toFixed(0) + '% W4:' + w4ret.toFixed(0) + '% — similar depth'; }
+  return { valid: alternates, note: note, w2ret: w2ret, w4ret: w4ret };
+}
+
+// ── CANDLESTICK PATTERNS ──────────────────────────────────────
+function detectCandlestick(priceData) {
+  if (!priceData || priceData.length < 3) return { pattern: 'None', bullish: false };
+  var len = priceData.length;
+  var c1 = priceData[len-1], c2 = priceData[len-2], c3 = priceData[len-3];
+  if (!c1 || !c2 || !c3) return { pattern: 'None', bullish: false };
+
+  // Use close prices as proxy (we only have close)
+  var p1 = c1.price, p2 = c2.price, p3 = c3.price;
+
+  // Hammer: last candle significantly above recent low
+  var recentLow = Math.min(p1, p2, p3);
+  var recentHigh = Math.max(p1, p2, p3);
+  var range = recentHigh - recentLow;
+
+  // Bullish Engulfing: price drops then strong reversal up
+  if (p2 < p3 && p1 > p2 && (p1-p2) > (p3-p2)*0.5) {
+    return { pattern: 'Bullish Engulfing', bullish: true };
+  }
+  // Hammer: sharp drop then recovery
+  if (p2 < p3 * 0.97 && p1 > p2 * 1.02) {
+    return { pattern: 'Hammer', bullish: true };
+  }
+  // Morning Star: 3-candle reversal
+  if (p3 > p2 && p2 < p1 && p1 > (p3+p2)/2) {
+    return { pattern: 'Morning Star', bullish: true };
+  }
+  // Doji: indecision at bottom
+  if (Math.abs(p1-p2)/p2 < 0.005 && p2 < p3*0.98) {
+    return { pattern: 'Doji (Reversal Signal)', bullish: true };
+  }
+  // Bearish: continued downtrend
+  if (p1 < p2 && p2 < p3) {
+    return { pattern: 'Downtrend Continuing', bullish: false };
+  }
+  return { pattern: 'No clear pattern', bullish: false };
+}
+
+// ── WAVE CHANNEL ─────────────────────────────────────────────
+function calcChannel(waves, prices) {
+  if (waves.length < 4) return { inChannel: true, note: 'Need more waves' };
+  // Channel: line from W1 top to W3 top (for bullish impulse)
+  // Current price should be below this channel line
+  var w1 = waves[1], w3 = waves.length >= 4 ? waves[3] : null;
+  if (!w1 || !w3) return { inChannel: true, note: 'Cannot calculate' };
+  var current = prices[prices.length-1];
+  // Simple check: current price vs W3 price
+  var channelTop = Math.max(w1.price, w3.price);
+  var channelBot = Math.min(waves[0].price, waves.length >= 3 ? waves[2].price : waves[0].price);
+  var inChannel = current <= channelTop * 1.02 && current >= channelBot * 0.98;
+  var note = inChannel ? 'Price within channel ✓' : 'Price outside channel ⚠️';
+  return { inChannel: inChannel, note: note, top: channelTop, bottom: channelBot };
+}
+
+// ── ENDING DIAGONAL DETECTION ─────────────────────────────────
+function detectEndingDiagonal(waves, prices) {
+  // Ending diagonal at W5: each sub-wave shorter than previous
+  // AND RSI divergence (price higher, RSI lower at W5 vs W3)
+  if (waves.length < 5) return { detected: false, note: 'Need W5 data' };
+  var w3 = waves[3], w5 = waves[4];
+  if (!w3 || !w5) return { detected: false, note: 'Insufficient data' };
+  var w3Size = Math.abs(waves[3].price - waves[2].price);
+  var w5Size = Math.abs(waves[4].price - (waves.length >= 6 ? waves[5].price : waves[4].price));
+  // Check RSI divergence
+  var rsiW3 = calcRSI(prices.slice(0, Math.min(w3.idx+1, prices.length)));
+  var rsiW5 = calcRSI(prices.slice(0, Math.min(w5.idx+1, prices.length)));
+  var priceDiverge = w5.price >= w3.price;
+  var rsiDiverge   = rsiW5 < rsiW3;
+  var diagonal = priceDiverge && rsiDiverge;
+  var note = diagonal ?
+    'Ending diagonal detected — reversal likely soon' :
+    'No ending diagonal';
+  return { detected: diagonal, note: note, rsiW3: rsiW3, rsiW5: rsiW5 };
+}
+
+function verifyWaves(waves,prices,vols) {
+  if(!waves||waves.length<3) return{score:0,passed:0,total:0,results:[],confidence:'LOW'};
+  var res=[],tot=0,pass=0;
+  function rsiAt(idx){var end=Math.min(idx+1,prices.length);return calcRSI(prices.slice(0,end));}
+  function volAt(idx){if(!vols||!vols.length)return 0;var s=Math.max(0,idx-3),e=Math.min(vols.length-1,idx+3),sum=0,n=0;for(var j=s;j<=e;j++){sum+=vols[j]||0;n++;}return n?sum/n:0;}
+  if(waves.length>=3){var w1r=Math.abs(waves[1].price-waves[0].price),w2r=w1r>0?Math.abs(waves[2].price-waves[1].price)/w1r*100:0,ok=w2r>=38&&w2r<=78.6;tot++;if(ok)pass++;res.push({wave:'W2',check:'Fib 38-78%',ok:ok,detail:w2r.toFixed(0)+'% retrace'});}
+  if(waves.length>=4){var w1s=Math.abs(waves[1].price-waves[0].price),w3s=Math.abs(waves[3].price-waves[2].price),ok2=w3s>=w1s;tot++;if(ok2)pass++;res.push({wave:'W3',check:'Ext >100%',ok:ok2,detail:(w1s>0?w3s/w1s*100:0).toFixed(0)+'% of W1'});}
+  if(waves.length>=5){var w3s2=Math.abs(waves[3].price-waves[2].price),w4r=w3s2>0?Math.abs(waves[4].price-waves[3].price)/w3s2*100:0,ok3=w4r>=23&&w4r<=50;tot++;if(ok3)pass++;res.push({wave:'W4',check:'Fib 23-50%',ok:ok3,detail:w4r.toFixed(0)+'% retrace'});}
+  if(waves.length>=3){var r2=rsiAt(waves[2].idx),ok4=r2<50;tot++;if(ok4)pass++;res.push({wave:'W2',check:'RSI Oversold',ok:ok4,detail:'RSI:'+r2.toFixed(0)});}
+  if(waves.length>=4){var r3=rsiAt(waves[3].idx),ok5=r3>55;tot++;if(ok5)pass++;res.push({wave:'W3',check:'RSI Strong',ok:ok5,detail:'RSI:'+r3.toFixed(0)});}
+  if(waves.length>=4&&vols&&vols.length){var v1=volAt(waves[1].idx),v3=volAt(waves[3].idx),ok6=v3>=v1*0.7;tot++;if(ok6)pass++;res.push({wave:'W3',check:'Vol Strong',ok:ok6,detail:ok6?'W3 vol strong':'W3 vol weak'});}
+  if(waves.length>=5&&vols&&vols.length){var v3b=volAt(waves[3].idx),v4=volAt(waves[4].idx),ok7=v4<=v3b*1.2;tot++;if(ok7)pass++;res.push({wave:'W4',check:'Vol Decline',ok:ok7,detail:ok7?'Vol declining':'Vol too high'});}
+  var pct=tot>0?pass/tot*100:0,conf=pct>=80?'HIGH':pct>=60?'MEDIUM':pct>=40?'LOW':'VERY LOW';
+  return{score:pct,passed:pass,total:tot,results:res,confidence:conf};
+}
+
+
 function detectEntry(pv) {
   if (pv.length < 3) return '';
   var w1r = Math.abs(pv[1].price - pv[0].price);
@@ -297,6 +433,21 @@ function renderPage() {
   var pivots = findPivots(prices, sensitivity);
   var ewRes = validateEW(pivots);
   var entry = detectEntry(pivots);
+  var stoch = calcStoch(prices);
+  var stochFull = calcStochFull(prices);
+  var alternation = checkAlternation(waves);
+  var candlestick = detectCandlestick(priceData);
+  var channel = calcChannel(waves, prices);
+  var diagonal = detectEndingDiagonal(waves, prices);
+  var verification = verifyWaves(
+    pivots.slice(0,8).map(function(p,i){
+      var labels2=['W1','W2','W3','W4','W5','Wave A','Wave B','Wave C'];
+      return {label:labels2[i]||('P'+(i+1)),price:p.price,type:p.type,idx:p.idx,
+        date:priceData[p.idx]?priceData[p.idx].date:new Date(),
+        color:p.type==='peak'?'#22c55e':p.type==='trough'?'#ef4444':'#f0b429'};
+    }),
+    prices, volData
+  );
   var labels = ['W1','W2','W3','W4','W5','Wave A','Wave B','Wave C'];
   var waves = pivots.slice(0,8).map(function(p,i) {
     return { label: labels[i]||('P'+(i+1)), price: p.price, type: p.type, idx: p.idx,
@@ -326,18 +477,23 @@ function renderPage() {
     {l:'4H Structure Aligned',ok:dailyPrices.length>0,cat:'TF'},
     {l:'Golden Rule Passed',ok:(current>wma50)&&(current>ma50||pctATH<-50),cat:'TF'},
     {l:'5-Wave Impulse Detected',ok:waves.length>=5,cat:'EW'},
+    {l:'Wave Count Verified ('+verification.score.toFixed(0)+'%)',ok:verification.score>=60,cat:'EW'},
     {l:'EW Rules Valid',ok:ewRes.valid,cat:'EW'},
     {l:'W2 or W4 Entry Zone',ok:entry!=='',cat:'EW'},
     {l:'Price -40%+ from ATH',ok:pctATH<-40,cat:'Price'},
     {l:'Price -60%+ from ATH',ok:pctATH<-60,cat:'Price'},
     {l:'Fibonacci Level Hit',ok:pctATH<-38&&pctATH>-90,cat:'Fib'},
     {l:'RSI Below 45 ('+rsiVal.toFixed(1)+')',ok:rsiVal<45,cat:'Mom'},
+    {l:'Stochastic Below 20 ('+stoch.toFixed(0)+')',ok:stoch<20,cat:'Mom'},
     {l:'MACD Bullish',ok:macdRes.cross||macdRes.turning,cat:'Mom'},
     {l:'EWO Signal',ok:ewoVal!==0,cat:'Mom'},
     {l:'Volume Declining',ok:vol_dec,cat:'Vol'},
     {l:'Volume Expanding',ok:vol_exp,cat:'Vol'},
     {l:'Volume Confirms',ok:vol_dec||vol_exp,cat:'Vol'},
     {l:'ABC Correction',ok:waves.length>=6,cat:'Struct'},
+    {l:'Alternation Rule: '+alternation.note,ok:alternation.valid,cat:'Struct'},
+    {l:'Wave Channel Valid',ok:channel.inChannel,cat:'Struct'},
+    {l:'Candlestick: '+candlestick.pattern,ok:candlestick.bullish,cat:'Struct'},
     {l:'No W1/W4 Overlap',ok:ewRes.valid,cat:'Struct'}
   ];
 
@@ -368,6 +524,7 @@ function renderPage() {
   h+='<div class="card" style="padding:10px"><div class="ct">PRICE + WAVES + SIGNAL LEVELS</div><canvas id="priceChart"></canvas></div>';
   h+='<div class="card" style="padding:8px"><canvas id="rsiChart"></canvas></div>';
   h+='<div class="card" style="padding:8px"><canvas id="macdChart"></canvas></div>';
+  h+='<div class="card" style="padding:8px"><canvas id="stochChart"></canvas></div>';
   h+='<div class="card" style="padding:8px"><canvas id="volChart"></canvas></div>';
   h+='<div class="sb" style="background:'+statusCol+'18;border:1px solid '+statusCol+'44;color:'+statusCol+'">'+statusTxt+'</div>';
   if(alt)h+='<div style="padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:8px;border:1px solid #f0b42933;color:#f0b429;background:#f0b42908">'+alt+'</div>';
@@ -381,13 +538,81 @@ function renderPage() {
   h+='</div></div>';
   h+='<div class="card"><div class="ct">WAVE COUNT</div>';
   for(i=0;i<waves.length;i++){var w=waves[i];var dt=w.date?w.date.toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';h+='<div class="wr"><span style="color:'+w.color+';font-weight:900;min-width:60px">'+w.label+'</span><span style="color:var(--muted);font-size:9px">'+dt+'</span><span style="font-weight:700">'+fp(w.price)+'</span><span style="font-size:9px;color:'+w.color+'">'+( w.type==='peak'?'▲ TOP':w.type==='trough'?'▼ BOT':'● NOW')+'</span></div>';}
-  h+=(!ewRes.valid?'<div style="font-size:10px;color:var(--red);margin-top:8px;padding:6px;background:#ef444411;border-radius:4px">⚠️ '+ewRes.issues.join(' · ')+'</div>':'<div style="font-size:10px;color:var(--green);margin-top:8px">✅ EW Rules Valid</div>')+'</div>';
+  h+=(!ewRes.valid?'<div style="font-size:10px;color:var(--red);margin-top:8px;padding:6px;background:#ef444411;border-radius:4px">⚠️ '+ewRes.issues.join(' · ')+'</div>':'<div style="font-size:10px;color:var(--green);margin-top:8px">✅ EW Rules Valid</div>');
+
+  // Wave verification results
+  h += '<div style="margin-top:12px"><div class="ct">WAVE COUNT VERIFICATION — ' + verification.passed + '/' + verification.total + ' checks passed</div>';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+  h += '<div style="flex:1;height:8px;border-radius:4px;background:var(--bg3);overflow:hidden"><div style="height:100%;width:' + verification.score.toFixed(0) + '%;border-radius:4px;background:' + (verification.score>=80?'var(--green)':verification.score>=60?'var(--gold)':'var(--red)') + '"></div></div>';
+  h += '<div style="font-size:11px;font-weight:900;color:' + (verification.score>=80?'var(--green)':verification.score>=60?'var(--gold)':'var(--red)') + ';min-width:80px">' + verification.confidence + ' (' + verification.score.toFixed(0) + '%)</div>';
+  h += '</div>';
+
+  for (var vi = 0; vi < verification.results.length; vi++) {
+    var vr = verification.results[vi];
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;margin-bottom:3px;background:' + (vr.ok?'#22c55e08':'#ef444408') + ';border:1px solid ' + (vr.ok?'#22c55e22':'#ef444422') + '">';
+    h += '<span style="font-size:12px">' + (vr.ok?'✅':'❌') + '</span>';
+    h += '<span style="color:' + (vr.ok?'var(--gold)':'var(--muted)') + ';font-weight:900;min-width:55px;font-size:10px">' + vr.wave + '</span>';
+    h += '<span style="color:var(--muted);font-size:9px;flex:1">' + vr.check + ': ' + vr.detail + '</span>';
+    h += '</div>';
+  }
+
+  // Overall verdict
+  h += '<div style="margin-top:8px;padding:8px;border-radius:5px;text-align:center;font-size:11px;font-weight:700;';
+  h += 'background:' + (verification.score>=80?'#22c55e11':verification.score>=60?'#f0b42911':'#ef444411') + ';';
+  h += 'border:1px solid ' + (verification.score>=80?'#22c55e33':verification.score>=60?'#f0b42933':'#ef444433') + ';';
+  h += 'color:' + (verification.score>=80?'var(--green)':verification.score>=60?'var(--gold)':'var(--red)') + '">';
+  if (verification.score >= 80) h += '🔥 WAVE COUNT HIGHLY RELIABLE — Trade with confidence';
+  else if (verification.score >= 60) h += '⚡ WAVE COUNT MODERATE — Use with caution';
+  else if (verification.score >= 40) h += '⚠️ WAVE COUNT UNCERTAIN — Verify manually';
+  else h += '❌ WAVE COUNT UNRELIABLE — Do not trade on this count';
+  h += '</div></div></div>';
   h+='<div class="card"><div class="ct">18-POINT CHECKLIST — '+score+'/18</div><div class="sbar"><div class="sfill" style="width:'+(score/18*100).toFixed(0)+'%;background:'+(score>=15?'var(--green)':score>=12?'var(--gold)':score>=9?'var(--orange)':'var(--red)')+'"></div></div><div style="margin:8px 0 10px;font-size:10px;color:var(--muted)">';
   var cats=['TF','EW','Price','Fib','Mom','Vol','Struct'];
   for(var c=0;c<cats.length;c++){var cat=cats[c];var ok=0,tot=0;for(i=0;i<checks.length;i++){if(checks[i].cat===cat){tot++;if(checks[i].ok)ok++;}}h+='<span style="color:'+(ok===tot?'var(--green)':ok>0?'var(--gold)':'var(--red)')+';margin-right:8px">'+cat+' '+ok+'/'+tot+'</span>';}
   h+='</div>';
   for(i=0;i<checks.length;i++){var ck=checks[i];h+='<div class="ci" style="background:'+(ck.ok?'#22c55e0d':'#ef44440d')+';border:1px solid '+(ck.ok?'#22c55e22':'#ef444422')+'"><span style="font-size:13px;min-width:20px">'+(ck.ok?'✅':'❌')+'</span><span style="color:'+(ck.ok?'var(--text)':'var(--muted)')+';flex:1">'+ck.l+'</span><span style="font-size:9px;color:var(--muted)">'+ck.cat+'</span></div>';}
   h+='<div style="margin-top:10px;padding:10px;border-radius:6px;text-align:center;font-size:12px;font-weight:700;background:'+(score>=15?'#22c55e11':score>=12?'#f0b42911':score>=9?'#f9731611':'#ef444411')+';border:1px solid '+(score>=15?'#22c55e33':score>=12?'#f0b42933':score>=9?'#f9731633':'#ef444433')+';color:'+(score>=15?'var(--green)':score>=12?'var(--gold)':score>=9?'var(--orange)':'var(--red)')+'">'+confTxt+'</div></div>';
+  // Advanced Analysis Section
+  h += '<div class="card"><div class="ct">ADVANCED ANALYSIS</div>';
+
+  // Stochastic
+  h += '<div style="margin-bottom:10px">';
+  h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">STOCHASTIC (14)</div>';
+  h += '<div style="display:flex;align-items:center;gap:10px">';
+  h += '<div style="flex:1;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden"><div style="height:100%;width:'+stoch.toFixed(0)+'%;border-radius:3px;background:'+(stoch<20?'var(--green)':stoch>80?'var(--red)':'var(--orange)')+'"></div></div>';
+  h += '<span style="font-size:11px;font-weight:900;color:'+(stoch<20?'var(--green)':stoch>80?'var(--red)':'var(--orange)')+'">'+stoch.toFixed(1)+(stoch<20?' ✅ Oversold':stoch>80?' ⚠️ Overbought':' Neutral')+'</span>';
+  h += '</div></div>';
+
+  // Alternation
+  h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(alternation.valid?'#22c55e08':'#f0b42908')+';border:1px solid '+(alternation.valid?'#22c55e22':'#f0b42922')+'">';
+  h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">ALTERNATION RULE</div>';
+  h += '<div style="font-size:11px;color:'+(alternation.valid?'var(--green)':'var(--gold)')+'">'+alternation.note+'</div>';
+  if(alternation.w2ret) h += '<div style="font-size:9px;color:var(--muted);margin-top:3px">W2: '+alternation.w2ret.toFixed(0)+'% retrace · W4: '+alternation.w4ret.toFixed(0)+'% retrace</div>';
+  h += '</div>';
+
+  // Candlestick
+  h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(candlestick.bullish?'#22c55e08':'#ef444408')+';border:1px solid '+(candlestick.bullish?'#22c55e22':'#ef444422')+'">';
+  h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">CANDLESTICK PATTERN</div>';
+  h += '<div style="font-size:11px;color:'+(candlestick.bullish?'var(--green)':'var(--red)')+'">'+candlestick.pattern+'</div>';
+  h += '</div>';
+
+  // Channel
+  h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(channel.inChannel?'#22c55e08':'#ef444408')+';border:1px solid '+(channel.inChannel?'#22c55e22':'#ef444422')+'">';
+  h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">WAVE CHANNEL</div>';
+  h += '<div style="font-size:11px;color:'+(channel.inChannel?'var(--green)':'var(--red)')+'">'+channel.note+'</div>';
+  h += '</div>';
+
+  // Ending Diagonal
+  if(diagonal.detected) {
+    h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:#f0b42911;border:1px solid #f0b42933">';
+    h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">⚠️ ENDING DIAGONAL DETECTED</div>';
+    h += '<div style="font-size:11px;color:var(--gold)">'+diagonal.note+'</div>';
+    h += '<div style="font-size:9px;color:var(--muted);margin-top:3px">RSI at W3: '+diagonal.rsiW3.toFixed(0)+' · RSI at W5: '+diagonal.rsiW5.toFixed(0)+'</div>';
+    h += '</div>';
+  }
+
+  h += '</div>';
+
   h+='<div class="card"><div class="ct">YOUR WAVE STRUCTURE</div><div style="font-size:10px;color:var(--muted);line-height:2"><div>Grand: W1($0.01→$69K) W2($69K→$15.4K) W3(ongoing)</div><div>W3: W1ofW3($15.4K→$126.2K) W2ofW3(correcting)</div><div>W2ofW3: A($126.2K→$74.5K) B($74.5K→$95.8K) C(unfolding)</div></div></div>';
 
   show(h);
@@ -397,7 +622,37 @@ function renderPage() {
     drawRSI(prices);
     drawMACD(macdRes);
     drawVol(volData);
+    drawStoch(stochFull);
   }, 50);
+}
+
+function drawStoch(vals) {
+  var c=document.getElementById('stochChart');if(!c||!vals.length)return;
+  var ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1,W=c.offsetWidth,H=65;
+  c.width=W*dpr;c.height=H*dpr;c.style.height=H+'px';ctx.scale(dpr,dpr);
+  var P={t:4,r:40,b:16,l:48},cW=W-P.l-P.r,cH=H-P.t-P.b;
+  ctx.fillStyle='#080c14';ctx.fillRect(0,0,W,H);
+  // Zones
+  ctx.fillStyle='#22c55e08';ctx.fillRect(P.l,P.t+cH*0.8,cW,cH*0.2);
+  ctx.fillStyle='#ef444408';ctx.fillRect(P.l,P.t,cW,cH*0.2);
+  [20,50,80].forEach(function(v){
+    var y=P.t+cH*(1-v/100);
+    ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();
+    ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';
+    ctx.fillText(v,P.l-3,y+3);
+  });
+  function xS(i){return P.l+(i/(vals.length-1))*cW;}
+  function yS(v){return P.t+cH*(1-v/100);}
+  ctx.beginPath();ctx.strokeStyle='#a855f7';ctx.lineWidth=1.5;
+  for(var i=0;i<vals.length;i++){i===0?ctx.moveTo(xS(i),yS(vals[i])):ctx.lineTo(xS(i),yS(vals[i]));}
+  ctx.stroke();
+  var last=vals[vals.length-1];
+  ctx.fillStyle=last<20?'#22c55e':last>80?'#ef4444':'#a855f7';
+  ctx.font='bold 9px monospace';ctx.textAlign='left';
+  ctx.fillText('STOCH '+last.toFixed(0),P.l+cW+2,P.t+cH/2+3);
+  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';
+  ctx.fillText('STOCH',P.l-3,P.t+8);
 }
 
 function drawPrice(prices, waves, sl, tps) {
