@@ -117,7 +117,7 @@ function doSearch() {
   var v = document.getElementById('inp').value.trim();
   if (!v) return;
   show('<div class="info">Searching...</div>');
-  fetch(CG + '/search?query=' + encodeURIComponent(v), {headers:{'x-cg-demo-api-key':KEY}})
+  fetch(CG + '/search?query=' + encodeURIComponent(v) + '&x_cg_demo_api_key=' + KEY)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (!d.coins || !d.coins.length) {
@@ -151,13 +151,14 @@ function setMode(m) {
 
 function fetchData(id) {
   show('<div class="info">Loading ' + id + '...<br>Please wait a moment</div>');
-  var interval = (parseInt(days) <= 7) ? 'hourly' : 'daily';
-  var hdrs = {headers: {'x-cg-demo-api-key': KEY}};
-  var url = CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=' + days + '&interval=' + interval;
-  var urlInfo = CG + '/coins/' + id + '?localization=false&tickers=false&community_data=false&developer_data=false';
-  var urlMax = CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=max&interval=daily';
+  // Scalp: always 14 days hourly | Swing: use selected timeframe
+  var actualDays = (mode === 'scalp') ? 14 : days;
+  var interval   = (mode === 'scalp') ? 'hourly' : ((parseInt(days) <= 7) ? 'hourly' : 'daily');
+  var url = CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=' + actualDays + '&interval=' + interval + '&x_cg_demo_api_key=' + KEY;
+  var urlInfo = CG + '/coins/' + id + '?localization=false&tickers=false&community_data=false&developer_data=false&x_cg_demo_api_key=' + KEY;
+  var urlMax = CG + '/coins/' + id + '/market_chart?vs_currency=usd&days=max&interval=daily&x_cg_demo_api_key=' + KEY;
 
-  fetch(url, hdrs)
+  fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(cd) {
       if (!cd.prices || !cd.prices.length) {
@@ -172,8 +173,8 @@ function fetchData(id) {
       weeklyPrices = dailyPrices;
       coinInfo = {};
       renderPage();
-      fetch(urlInfo, hdrs).then(function(r) { return r.json(); }).then(function(info) { coinInfo = info; renderPage(); }).catch(function() {});
-      fetch(urlMax, hdrs).then(function(r) { return r.json(); }).then(function(mx) { if (mx.prices) weeklyPrices = mx.prices.map(function(p) { return p[1]; }); renderPage(); }).catch(function() {});
+      fetch(urlInfo).then(function(r) { return r.json(); }).then(function(info) { coinInfo = info; renderPage(); }).catch(function() {});
+      fetch(urlMax).then(function(r) { return r.json(); }).then(function(mx) { if (mx.prices) weeklyPrices = mx.prices.map(function(p) { return p[1]; }); renderPage(); }).catch(function() {});
     })
     .catch(function(e) { show('<div class="err">API Error: ' + e.message + '</div>'); });
 }
