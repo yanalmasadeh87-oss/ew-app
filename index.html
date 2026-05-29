@@ -496,6 +496,37 @@ function detectTruncatedW5(waves, prices) {
   };
 }
 
+// ── FIBONACCI W1 RETRACE ──────────────────────────────────────
+function calcFibRetrace(pivots) {
+  if (pivots.length < 3) return { retrace: 0, valid: false, label: 'No data' };
+  var w1Range = Math.abs(pivots[1].price - pivots[0].price);
+  if (w1Range === 0) return { retrace: 0, valid: false, label: 'Invalid W1' };
+  var w2Range = Math.abs(pivots[2].price - pivots[1].price);
+  var retrace = (w2Range / w1Range) * 100;
+  var valid = retrace >= 38.2 && retrace <= 100;
+  var label = '';
+  if (retrace < 38.2)        label = 'Shallow (<38.2%)';
+  else if (retrace <= 50.0)  label = '0.382 Fib Zone';
+  else if (retrace <= 61.8)  label = '0.500 Fib Zone';
+  else if (retrace <= 78.6)  label = '0.618 Golden Ratio ✓';
+  else if (retrace <= 100)   label = '0.786 Deep Fib';
+  else                        label = 'W2 > W1 (Invalid)';
+  return { retrace: retrace, valid: valid, label: label,
+           golden: retrace >= 38.2 && retrace <= 78.6 };
+}
+
+function calcW4Fib(pivots) {
+  if (pivots.length < 5) return { retrace: 0, valid: false, label: 'Need W4' };
+  var w3Range = Math.abs(pivots[3].price - pivots[2].price);
+  if (w3Range === 0) return { retrace: 0, valid: false, label: 'Invalid W3' };
+  var w4Range = Math.abs(pivots[4].price - pivots[3].price);
+  var retrace = (w4Range / w3Range) * 100;
+  var valid = retrace >= 23.6 && retrace <= 50.0;
+  return { retrace: retrace, valid: valid,
+           label: valid ? 'W4 Fib ' + retrace.toFixed(0) + '% of W3' : 'W4 outside Fib' };
+}
+
+
 function verifyWaves(waves,prices,vols){
   if(!waves||waves.length<3)return{score:0,passed:0,total:0,results:[],confidence:'LOW'};
   var res=[],tot=0,pass=0;
@@ -589,9 +620,9 @@ function renderPage(stats){
     {l:'Wave Count Verified ('+verif.score.toFixed(0)+'%)',ok:verif.score>=60,cat:'EW'},
     {l:'W2 or W4 Entry Zone',ok:entry!==''&&entry!=='Wave C',cat:'EW'},
     {l:'Wave C Bottom Detected',ok:entry==='Wave C',cat:'EW'},
-    {l:'Price -40%+ from ATH',ok:pctATH<-40,cat:'Price'},
-    {l:'Price -60%+ from ATH',ok:pctATH<-60,cat:'Price'},
-    {l:'Fib Level Hit',ok:pctATH<-38&&pctATH>-90,cat:'Fib'},
+    {l:'W2 Fib Retrace: '+fibW1.label,ok:fibW1.valid,cat:'Fib'},
+    {l:'Golden Ratio Zone (38-78%)',ok:fibW1.golden,cat:'Fib'},
+    {l:'W2 or W4 Fib Entry',ok:fibW1.valid||fibW4.valid,cat:'Fib'},
     {l:'RSI Below 45 ('+rsiVal.toFixed(0)+')',ok:rsiVal<45,cat:'Mom'},
     {l:'Stochastic Below 25 ('+stoch.toFixed(0)+')',ok:stoch<25,cat:'Mom'},
     {l:'MACD Bullish',ok:macdRes.cross||macdRes.turning,cat:'Mom'},
