@@ -610,6 +610,31 @@ function detectWXYXZ(pivots, current) {
 }
 
 
+// ── WAVE C BOTTOM DETECTOR ────────────────────────────────────
+function detectWaveCBottom(pivots, prices, rsiVal) {
+  if (!pivots || pivots.length < 4) return false;
+  var current = prices[prices.length-1];
+  for (var i = pivots.length-4; i >= 0; i--) {
+    var p0=pivots[i], p1=pivots[i+1], p2=pivots[i+2], p3=pivots[i+3];
+    if (!(p1.type==='peak' && p2.type==='trough' && p3.type==='peak')) continue;
+    var waveA = Math.abs(p1.price - p2.price);
+    var waveB = Math.abs(p3.price - p2.price);
+    if (waveA === 0) continue;
+    var bRet = waveB / waveA * 100;
+    if (bRet < 38 || bRet > 100) continue;
+    // Wave C: from p3 downward — check if current is near C bottom
+    var waveC = Math.abs(p3.price - current);
+    var cRatio = waveC / waveA * 100;
+    if (cRatio >= 50 && cRatio <= 170) {
+      // Price is near expected C bottom zone
+      var proximity = Math.abs(current - (p3.price - waveA)) / (p3.price - waveA) * 100;
+      if (proximity <= 8) return true;
+    }
+  }
+  return false;
+}
+
+
 function verifyWaves(waves,prices,vols){
   if(!waves||waves.length<3)return{score:0,passed:0,total:0,results:[],confidence:'LOW'};
   var res=[],tot=0,pass=0;
