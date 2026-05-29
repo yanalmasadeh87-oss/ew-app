@@ -1,1284 +1,1569 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>EW Strategy V3</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#080c14;--bg2:#0d1421;--bg3:#111827;--border:#1e293b;--gold:#f0b429;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--orange:#f97316;--text:#e2e8f0;--muted:#64748b}
-body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;padding:12px;min-height:100vh}
-h1{font-size:20px;font-weight:900;background:linear-gradient(90deg,#f0b429,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:2px}
-.sub{text-align:center;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:14px}
-.row{display:flex;gap:6px;margin-bottom:10px}
-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;outline:none}
-input:focus{border-color:var(--gold)}
-.gbtn{background:var(--gold);color:#000;border:none;border-radius:6px;padding:10px 18px;font-weight:900;font-size:12px;cursor:pointer;font-family:'Courier New',monospace}
-.coins{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.cbtn{background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'Courier New',monospace}
-.modes{display:flex;gap:6px;margin-bottom:10px}
-.mbtn{flex:1;background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:8px;font-size:11px;cursor:pointer;font-family:'Courier New',monospace;text-align:center}
-.mbtn.on{background:#3b82f611;color:var(--blue);border-color:var(--blue)}
-.tfs{display:flex;gap:5px;margin-bottom:14px}
-.tbtn{flex:1;background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:6px 2px;font-size:10px;cursor:pointer;font-family:'Courier New',monospace;text-align:center}
-.tbtn.on{background:#f0b42922;color:var(--gold);border-color:var(--gold)}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
-.ct{font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:10px}
-.pbig{font-size:28px;font-weight:900;color:var(--gold)}
-.ph{display:flex;justify-content:space-between;align-items:flex-start}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.si{background:var(--bg3);border-radius:6px;padding:10px;border:1px solid var(--border)}
-.sl{font-size:8px;letter-spacing:2px;color:var(--muted);margin-bottom:3px}
-.sv{font-size:13px;font-weight:900}
-.wr{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:10px}
-.wr:last-child{border-bottom:none}
-.ci{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:5px;margin-bottom:4px;font-size:10px}
-.sb{padding:10px;border-radius:6px;font-size:11px;font-weight:700;text-align:center;margin-bottom:12px}
-.info{text-align:center;padding:30px;color:var(--muted);font-size:12px;line-height:2}
-.err{text-align:center;padding:20px;color:var(--red);font-size:11px;line-height:1.6}
-.disc{text-align:center;font-size:8px;color:#334155;margin-top:16px;letter-spacing:1px;line-height:1.8}
-canvas{width:100%!important;display:block;border-radius:4px}
-.sbar{height:6px;border-radius:3px;background:var(--bg3);margin-top:6px;overflow:hidden}
-.sfill{height:100%;border-radius:3px}
-.struct-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:8px}
-</style>
-</head>
-<body>
-<h1>EW STRATEGY V3</h1>
-<div class="sub">YOUR WAVE STRUCTURE · BINANCE DATA · MULTI-TIMEFRAME</div>
-<div class="row">
-  <input type="text" id="inp" placeholder="Enter symbol (BTC, XRP, ETH, SOL...)">
-  <button class="gbtn" id="gobtn">GO</button>
-</div>
-<div class="coins">
-  <button class="cbtn" id="btn-btc">BTC</button>
-  <button class="cbtn" id="btn-xrp">XRP</button>
-  <button class="cbtn" id="btn-eth">ETH</button>
-  <button class="cbtn" id="btn-sol">SOL</button>
-  <button class="cbtn" id="btn-bnb">BNB</button>
-  <button class="cbtn" id="btn-ada">ADA</button>
-</div>
-<div class="modes">
-  <button class="mbtn on" id="m-swing">SWING</button>
-  <button class="mbtn" id="m-scalp">SCALP</button>
-</div>
-<div class="tfs" id="tfs">
-  <button class="tbtn" id="tf-30">1M</button>
-  <button class="tbtn" id="tf-90">3M</button>
-  <button class="tbtn" id="tf-180">6M</button>
-  <button class="tbtn" id="tf-365">1Y</button>
-  <button class="tbtn" id="tf-730">2Y</button>
-  <button class="tbtn on" id="tf-max">MAX</button>
-</div>
-<div id="main"><div class="info">Tap a coin or type a symbol (BTC, XRP...) and tap GO<br>Powered by Binance — Free · Unlimited · No Key Needed</div></div>
-<div class="disc">FOR EDUCATIONAL PURPOSES ONLY · NOT FINANCIAL ADVICE<br>SPOT TRADING ONLY · HALAL COINS · ALWAYS MANAGE YOUR RISK</div>
+"""
+SIGNALSYM — signal_bot.py
+Elliott Wave Bot | Halal Spot Only | Binance API
+Developer: Yanal Masadeh (@YASAMA_11)
 
-<script>
-var BN = 'https://api.binance.com/api/v3';
-var sym = 'BTCUSDT', days = 365, mode = 'swing';
-var priceData = [], volData = [], coinSym = 'BTC', globalATH = 0;
+════════════════════════════════════════════════════════════════
+CORE PHILOSOPHY
+════════════════════════════════════════════════════════════════
+Every coin has its own Grand Supercycle structure — just like BTC:
+  W1: ATL → ATH (first major impulse)
+  W2: ATH → correction (38–100% of W1)
+  W3: correction bottom → new ATH (most powerful wave)
+  W4: pullback from W3 top (23–38% of W3)
+  W5: final push above W3
 
-var NAMES = {
-  'BTC':'Bitcoin','ETH':'Ethereum','XRP':'Ripple','SOL':'Solana',
-  'BNB':'BNB','ADA':'Cardano','AVAX':'Avalanche','DOT':'Polkadot',
-  'LINK':'Chainlink','ATOM':'Cosmos','NEAR':'NEAR','FIL':'Filecoin',
-  'APT':'Aptos','ARB':'Arbitrum','OP':'Optimism','INJ':'Injective',
-  'STX':'Stacks','SEI':'Sei','GRT':'The Graph','VET':'VeChain',
-  'HBAR':'Hedera','ICP':'Internet Computer','FTM':'Fantom',
-  'ETC':'Ethereum Classic','WLD':'Worldcoin','RENDER':'Render',
-  'KAS':'Kaspa','ALGO':'Algorand','XLM':'Stellar','LTC':'Litecoin',
-  'TON':'Toncoin','XTZ':'Tezos','BCH':'Bitcoin Cash','IMX':'Immutable X',
-  'FET':'Fetch.ai','OCEAN':'Ocean Protocol','AKT':'Akash','AR':'Arweave',
-  'HNT':'Helium','ONE':'Harmony','ZIL':'Zilliqa','QTUM':'Qtum',
-  'DCR':'Decred','RVN':'Ravencoin','EGLD':'MultiversX','FLOW':'Flow',
-  'ANKR':'Ankr','BAND':'Band Protocol','NMR':'Numeraire','SKL':'Skale',
-  'CELO':'Celo','ROSE':'Oasis','GALA':'Gala','AXS':'Axie Infinity',
-  'SAND':'The Sandbox','MANA':'Decentraland','ENJ':'Enjin','CHZ':'Chiliz',
-  'ASTR':'Astar','BAT':'Basic Attention','LPT':'Livepeer','AUDIO':'Audius',
-  'CVC':'Civic','POWR':'Power Ledger','HOT':'Holo','TAO':'Bittensor',
-  'SUI':'Sui','TWT':'Trust Wallet'
-};
+The bot reads each chart independently:
+  1. Fetches full weekly history → finds coin's own ATL, ATH, W1 range
+  2. Determines where the coin is in its cycle (W2? W3? W4? ABC?)
+  3. Reads the ACTUAL chart pattern (zigzag? flat? running? WXYXZ?)
+  4. Applies the correct analysis technique for that specific pattern
+  5. Builds levels from actual wave levels — not fixed templates
 
-// ── STRUCTURE LABELS & COLORS ─────────────────────────────────
-var STRUCT_META = {
-  'STANDARD_EW_W4':     { label:'Standard EW — W4 Entry',        color:'#22c55e', icon:'📊' },
-  'STANDARD_EW_W2':     { label:'Standard EW — W2 Entry',        color:'#22c55e', icon:'📊' },
-  'ABC_ZIGZAG':         { label:'ABC Zigzag Correction',         color:'#3b82f6', icon:'〽️' },
-  'EXPANDED_FLAT':      { label:'Expanded Flat Correction',      color:'#f97316', icon:'📐' },
-  'RUNNING_CORRECTION': { label:'Running Correction (Bullish)',  color:'#a855f7', icon:'🚀' },
-  'WXYXZ':              { label:'W-X-Y-X-Z Triple Combination',  color:'#f0b429', icon:'🔁' },
-  'NONE':               { label:'No Structure Detected',         color:'#ef4444', icon:'❌' }
-};
+No two charts are analyzed the same way.
+The technique adapts to what the chart actually shows.
 
-// ─────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────
-function show(h){ document.getElementById('main').innerHTML = h; }
-function fp(p){
-  if(!p && p!==0) return 'N/A';
-  if(p>=1000) return '$'+Math.round(p).toLocaleString();
-  if(p>=1)    return '$'+p.toFixed(4);
-  if(p>=0.01) return '$'+p.toFixed(5);
-  return '$'+p.toFixed(7);
-}
-function fpc(p){ return (p>=0?'+':'')+p.toFixed(2)+'%'; }
-function pct(a,b){ return b>0 ? ((a-b)/b*100).toFixed(1) : '0.0'; }
+════════════════════════════════════════════════════════════════
+SESSION DOC — FIXED RULES (never change)
+════════════════════════════════════════════════════════════════
+CHECKLIST (Part 3):
+  Required (ALL 10 must pass):
+    1. Daily Trend Bullish
+    2. MA50 Confirmed
+    3. 5-Wave Impulse / Core Structure
+    4. EW Rules Valid (3 Cardinal Rules)
+    5. Entry Zone (W2/W4/Wave C — adapts per structure)
+    6. Fib Check (adapts per structure)
+    7. RSI Below 45
+    8. MACD Bullish
+    9. No Ending Diagonal
+    10. No Truncated W5
+  Situational (■ = not applicable = NOT failure):
+    Wave Count >60% | Golden Ratio | Wave C Bottom
+    C=A Price+Time | WXYXZ X1=X2 | ABC Structure
+    Stoch <25 | SMI <-40 | EWO | Vol Declining
+    Vol Expanding | Alternation | Candlestick | Wave Sym | Blue Box
 
-function getInterval(){
-  if(mode==='scalp') return '4h';
-  if(days<=90)       return '4h';
-  return '1d';
-}
-function getLimit(){
-  if(mode==='scalp') return 540;
-  if(days===1000)    return 1000;
-  return days;
-}
+SIGNAL LEVELS (Part 4):
+  SCALP: SL=-5% | TP1=+3% | TP2=+5% | TP3=+8% | TP4=+10% (fixed)
+  SWING: SL=2% below structure low | TPs=actual wave levels
 
-function loadSym(s){
-  sym = s.toUpperCase()+'USDT'; coinSym = s.toUpperCase();
-  document.getElementById('inp').value = s.toUpperCase();
-  fetchData();
-}
-function doSearch(){
-  var v = document.getElementById('inp').value.trim().toUpperCase();
-  if(!v) return;
-  coinSym = v; sym = v+'USDT'; fetchData();
-}
-function setMode(m){
-  mode = m;
-  document.getElementById('m-swing').classList.toggle('on', m==='swing');
-  document.getElementById('m-scalp').classList.toggle('on', m==='scalp');
-  if(sym) fetchData();
-}
-function setTF(d, btnId){
-  days = d;
-  document.querySelectorAll('.tbtn').forEach(function(b){ b.classList.remove('on'); });
-  var el = document.getElementById(btnId);
-  if(el) el.classList.add('on');
-  if(sym) fetchData();
-}
+3 CARDINAL RULES:
+  Rule 1: W2 NEVER retraces > 100% of W1
+  Rule 2: W3 is NEVER the shortest impulse wave
+  Rule 3: W4 NEVER overlaps W1 territory
 
-function fetchData(){
-  show('<div class="info">Loading '+coinSym+'/USDT from Binance...<br>Please wait</div>');
-  var urlK   = BN+'/klines?symbol='+sym+'&interval='+getInterval()+'&limit='+getLimit();
-  var url24  = BN+'/ticker/24hr?symbol='+sym;
-  var urlMax = BN+'/klines?symbol='+sym+'&interval=1w&limit=200';
-  Promise.all([
-    fetch(urlK).then(function(r){return r.json();}),
-    fetch(url24).then(function(r){return r.json();}),
-    fetch(urlMax).then(function(r){return r.json();})
-  ]).then(function(res){
-    var klines=res[0], stats=res[1], maxK=res[2];
-    if(maxK && maxK.length && !maxK.code)
-      globalATH = Math.max.apply(null, maxK.map(function(k){return parseFloat(k[2]);}));
-    if(!klines || !klines.length || klines.code){
-      show('<div class="err">❌ Symbol not found on Binance.<br>Try: BTC, ETH, XRP, SOL, BNB...</div>');
-      return;
+GOLDEN RULE:
+  Daily bullish → LONG signals only on all timeframes
+  NEVER counter-trade the daily bias
+"""
+
+import time
+import logging
+import requests
+import numpy as np
+from datetime import datetime
+
+# ─────────────────────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────────────────────
+TELEGRAM_TOKEN         = "7975488031:AAHLdeNTM-YIItriXwradU4bPyCMdR-mAIY"
+CHAT_ID                = "8422276082"
+BINANCE_BASE           = "https://api.binance.com"
+
+SWING_DAYS             = 730
+SCALP_DAYS             = 90
+SCAN_INTERVAL          = 900
+COIN_SLEEP             = 1
+HEARTBEAT_SCANS        = 96
+
+SWING_COOLDOWN         = 4 * 3600
+SCALP_COOLDOWN         = 2 * 3600
+WATCH_COOLDOWN_SWING   = 2 * 3600
+WATCH_COOLDOWN_SCALP   = 1 * 3600
+PRICE_MONITOR_INTERVAL = 300
+
+SCALP_SL_PCT  = 0.05
+SCALP_TP1_PCT = 0.03
+SCALP_TP2_PCT = 0.05
+SCALP_TP3_PCT = 0.08
+SCALP_TP4_PCT = 0.10
+SWING_SL_BUFFER = 0.02
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("SIGNALSYM")
+
+# ─────────────────────────────────────────────────────────────
+# 75 HALAL COINS
+# ─────────────────────────────────────────────────────────────
+HALAL_COINS = [
+    "BTC","ETH","XRP","SOL","BNB","ADA","AVAX","SUI","HBAR","NEAR",
+    "DOT","ICP","FTM","ETC","WLD","RENDER","ATOM","KAS","FIL","APT",
+    "ARB","VET","SEI","STX","TAO",
+    "XLM","ALGO","LTC","TON","LINK","POL","XTZ","IOTA","BCH","IMX",
+    "INJ","FET","OCEAN","AKT","AR","HNT","ONE","ZIL","QTUM","DCR",
+    "RVN","EGLD","FLOW","ANKR","GRT","ROSE","KAVA","SKL","NMR","OP",
+    "CELO","BAND","WAXP","TWT",
+    "GALA","AXS","SAND","MANA","ENJ","CHZ","ASTR","BAT","LPT",
+    "AUDIO","CVC","POWR","HOT",
+]
+
+last_signal_time = {}
+active_trades    = {}
+watch_coins      = {}
+scan_count       = 0
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 1 — BINANCE DATA
+# ═════════════════════════════════════════════════════════════
+
+def get_klines(symbol, interval, limit):
+    url = f"{BINANCE_BASE}/api/v3/klines"
+    try:
+        r = requests.get(url,
+            params={"symbol": f"{symbol}USDT",
+                    "interval": interval, "limit": limit},
+            timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        if not data or isinstance(data, dict):
+            return None
+        arr = lambda i: np.array([float(c[i]) for c in data])
+        return arr(1), arr(2), arr(3), arr(4), arr(5), \
+               np.array([int(c[0]) for c in data])
+    except Exception as e:
+        log.warning(f"Binance {symbol} {interval}: {e}")
+        return None
+
+
+def get_weekly_history(symbol):
+    """Full weekly history — used to find coin's own grand structure."""
+    return get_klines(symbol, "1w", 1000)
+
+
+def get_current_price(symbol):
+    try:
+        r = requests.get(f"{BINANCE_BASE}/api/v3/ticker/price",
+            params={"symbol": f"{symbol}USDT"}, timeout=5)
+        return float(r.json()["price"])
+    except Exception:
+        return None
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 2 — INDICATORS
+# ═════════════════════════════════════════════════════════════
+
+def _ema(data, n):
+    k = 2 / (n + 1)
+    e = [float(data[0])]
+    for v in data[1:]:
+        e.append(float(v) * k + e[-1] * (1 - k))
+    return np.array(e)
+
+
+def calc_rsi(closes, period=14):
+    if len(closes) < period + 1:
+        return None
+    d  = np.diff(closes.astype(float))
+    g  = np.where(d > 0, d, 0.0)
+    l  = np.where(d < 0, -d, 0.0)
+    ag = np.mean(g[:period])
+    al = np.mean(l[:period])
+    for i in range(period, len(g)):
+        ag = (ag * (period - 1) + g[i]) / period
+        al = (al * (period - 1) + l[i]) / period
+    return round(100.0 if al == 0 else 100 - 100 / (1 + ag / al), 2)
+
+
+def calc_macd(closes, fast=12, slow=26, sig=9):
+    if len(closes) < slow + sig:
+        return None, None, False
+    ml   = _ema(closes, fast) - _ema(closes, slow)
+    sl   = _ema(ml, sig)
+    hist = ml - sl
+    bull = bool(hist[-1] > 0 and hist[-2] <= 0) or \
+           bool(hist[-1] > hist[-2] > 0)
+    return float(ml[-1]), float(sl[-1]), bull
+
+
+def calc_stoch(closes, highs, lows, k=14):
+    if len(closes) < k:
+        return None
+    lo, hi = np.min(lows[-k:]), np.max(highs[-k:])
+    return round(50.0 if hi == lo
+                 else (closes[-1] - lo) / (hi - lo) * 100, 2)
+
+
+def calc_smi(closes, highs, lows, period=13, smooth=25):
+    if len(closes) < period + smooth:
+        return None
+    mid  = (highs[-period:] + lows[-period:]) / 2
+    diff = closes[-period:] - mid
+    rng  = np.where(highs[-period:] - lows[-period:] == 0,
+                    0.0001,
+                    highs[-period:] - lows[-period:])
+    return round(float(_ema(200 * diff / rng, smooth)[-1]), 2)
+
+
+def calc_ewo(closes, fast=5, slow=35):
+    if len(closes) < slow:
+        return None, False
+    val = float(_ema(closes, fast)[-1] - _ema(closes, slow)[-1])
+    return round(val, 6), val > 0
+
+
+def calc_ma50(closes):
+    return float(np.mean(closes[-50:])) if len(closes) >= 50 else None
+
+
+def volume_analysis(volumes, lb=10):
+    if len(volumes) < lb + 2:
+        return False, False
+    v         = volumes[-lb - 1:-1]
+    declining = bool(np.polyfit(range(len(v)), v, 1)[0] < 0)
+    expanding = bool(volumes[-1] > np.mean(v) * 1.2)
+    return declining, expanding
+
+
+def daily_trend_bullish(closes_1d):
+    """Golden Rule: price above MA50 AND last 5 closes trending up."""
+    if len(closes_1d) < 50:
+        return False
+    return bool(closes_1d[-1] > np.mean(closes_1d[-50:]) and
+                closes_1d[-1] > closes_1d[-5])
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 3 — COIN GRAND STRUCTURE
+#
+# Every coin has its own wave cycle. The bot reads the full
+# weekly history to find:
+#   - ATL (Wave 0 origin — lowest price ever)
+#   - ATH (Wave 1 or Wave 3 top — highest price ever)
+#   - W1 range (ATH - ATL)
+#   - Current position in the cycle
+#   - Key Fib levels specific to this coin
+#
+# This is applied to ALL coins — not just BTC.
+# ═════════════════════════════════════════════════════════════
+
+def get_grand_structure(symbol):
+    """
+    Reads full weekly history to determine coin's own grand wave structure.
+
+    Returns dict with:
+      atl, ath, w1_range
+      w1_complete: bool (has ATH been formed and price pulled back?)
+      current_cycle_position: 'W2', 'W3', 'W4', 'W5', 'UNKNOWN'
+      key fib levels for W2 correction zone
+      invalidation levels
+    """
+    weekly = get_weekly_history(symbol)
+    if weekly is None:
+        return None
+
+    opens, highs, lows, closes, volumes, times = weekly
+    current = float(closes[-1])
+
+    # ATL = lowest low in full history (Wave 0 / cycle origin)
+    atl_idx = int(np.argmin(lows))
+    atl     = float(lows[atl_idx])
+
+    # ATH = highest high in full history (after ATL)
+    post_atl_highs = highs[atl_idx:]
+    if len(post_atl_highs) == 0:
+        return None
+    ath_rel_idx = int(np.argmax(post_atl_highs))
+    ath_idx     = atl_idx + ath_rel_idx
+    ath         = float(highs[ath_idx])
+
+    # W1 range = ATH - ATL (the grand first impulse)
+    w1_range = ath - atl
+    if w1_range <= 0:
+        return None
+
+    # Current price position relative to W1 range
+    # How far has price retraced from ATH?
+    retrace_from_ath = (ath - current) / w1_range  # 0 = at ATH, 1 = at ATL
+
+    # W2 Fibonacci correction levels (from ATH downward)
+    fib_levels = {
+        '0.236': round(ath - w1_range * 0.236, 6),
+        '0.382': round(ath - w1_range * 0.382, 6),
+        '0.500': round(ath - w1_range * 0.500, 6),
+        '0.618': round(ath - w1_range * 0.618, 6),
+        '0.786': round(ath - w1_range * 0.786, 6),
+        '1.000': round(atl, 6),
     }
-    priceData = klines.map(function(k){
-      return { date:new Date(k[0]), open:parseFloat(k[1]), high:parseFloat(k[2]),
-               low:parseFloat(k[3]), price:parseFloat(k[4]), vol:parseFloat(k[5]) };
-    });
-    volData = priceData.map(function(d){ return d.vol; });
-    renderPage(stats);
-  }).catch(function(e){
-    show('<div class="err">❌ API Error: '+e.message+'</div>');
-  });
-}
 
-// ─────────────────────────────────────────────────────────────
-// INDICATORS (unchanged from original)
-// ─────────────────────────────────────────────────────────────
-function calcRSI(prices){
-  var period=14;
-  if(prices.length<period+1) return 50;
-  var ag=0,al=0,i,d;
-  for(i=1;i<=period;i++){ d=prices[i]-prices[i-1]; if(d>0)ag+=d; else al+=Math.abs(d); }
-  ag/=period; al/=period;
-  for(i=period;i<prices.length;i++){
-    d=prices[i]-prices[i-1];
-    ag=(ag*13+(d>0?d:0))/14;
-    al=(al*13+(d<0?Math.abs(d):0))/14;
-  }
-  return al===0?100:100-(100/(1+ag/al));
-}
-function calcEMA(prices,period){
-  if(prices.length<period) return [];
-  var k=2/(period+1),sum=0,i;
-  for(i=0;i<period;i++) sum+=prices[i];
-  var r=[sum/period];
-  for(i=period;i<prices.length;i++) r.push(prices[i]*k+r[r.length-1]*(1-k));
-  return r;
-}
-function calcMACD(prices){
-  if(prices.length<35) return {cross:false,turning:false,hist:0,histLine:[]};
-  var ef=calcEMA(prices,12),es=calcEMA(prices,26),ml=[],i;
-  for(i=0;i<es.length;i++) ml.push(ef[i+14]-es[i]);
-  if(ml.length<9) return {cross:false,turning:false,hist:0,histLine:[]};
-  var sl=calcEMA(ml,9),diff=ml.length-sl.length,hist=[];
-  for(i=0;i<sl.length;i++) hist.push(ml[i+diff]-sl[i]);
-  var h=hist[hist.length-1]||0,ph=hist[hist.length-2]||0;
-  return {cross:h>0&&ph<=0,turning:h>ph,hist:h,prev:ph,histLine:hist};
-}
-function calcStoch(prices,period){
-  period=period||14;
-  if(prices.length<period) return 50;
-  var sl=prices.slice(-period),high=Math.max.apply(null,sl),low=Math.min.apply(null,sl);
-  if(high===low) return 50;
-  return ((prices[prices.length-1]-low)/(high-low))*100;
-}
-function calcEWO(prices){
-  if(prices.length<35) return 0;
-  var m5=0,m35=0,i;
-  for(i=prices.length-5;i<prices.length;i++) m5+=prices[i];
-  for(i=prices.length-35;i<prices.length;i++) m35+=prices[i];
-  return m5/5-m35/35;
-}
-function calcSMI(prices,period){
-  period=period||14;
-  if(prices.length<period) return 0;
-  var result=[],i;
-  for(i=period-1;i<prices.length;i++){
-    var sl=prices.slice(i-period+1,i+1),high=Math.max.apply(null,sl),low=Math.min.apply(null,sl),mid=(high+low)/2,range=high-low;
-    result.push(range>0?((prices[i]-mid)/(range/2))*100:0);
-  }
-  var smoothed=calcEMA(result,3);
-  return smoothed.length>0?smoothed[smoothed.length-1]:0;
-}
-function calcSMIFull(prices,period){
-  period=period||14;
-  var result=[],i;
-  for(i=period-1;i<prices.length;i++){
-    var sl=prices.slice(i-period+1,i+1),high=Math.max.apply(null,sl),low=Math.min.apply(null,sl),mid=(high+low)/2,range=high-low;
-    result.push(range>0?((prices[i]-mid)/(range/2))*100:0);
-  }
-  return calcEMA(result,3);
-}
-function calcMA50(prices){
-  if(prices.length<50) return prices[prices.length-1]||0;
-  var sum=0,i; for(i=prices.length-50;i<prices.length;i++) sum+=prices[i];
-  return sum/50;
-}
-function volumeAnalysis(vols){
-  if(vols.length<10) return {declining:false,expanding:false};
-  var r5=0,p5=0,i;
-  for(i=vols.length-5;i<vols.length;i++) r5+=vols[i];
-  for(i=vols.length-10;i<vols.length-5;i++) p5+=vols[i];
-  return { declining:(r5/5)<(p5/5), expanding:vols[vols.length-1]>(r5/5)*1.2 };
-}
+    # Determine current wave position based on price action
+    # after ATH — where is price in the cycle right now?
+    ath_candles_ago = len(highs) - 1 - ath_idx
+    price_from_atl  = (current - atl) / w1_range  # 0=at ATL, 1=at ATH
 
-// ─────────────────────────────────────────────────────────────
-// PIVOT DETECTION
-// Adaptive window — tries 5 then 3 if not enough pivots
-// ─────────────────────────────────────────────────────────────
-function findPivots(highs, lows, window){
-  window = window || 5;
-  var n=highs.length, pivots=[], i, win;
-  for(win=window; win>=3; win--){
-    pivots=[];
-    for(i=win;i<n-win;i++){
-      var isH=true,isL=true,j;
-      for(j=1;j<=win;j++){
-        if(highs[i]<highs[i-j]||highs[i]<highs[i+j]) isH=false;
-        if(lows[i]>lows[i-j]||lows[i]>lows[i+j])     isL=false;
-      }
-      if(isH) pivots.push({idx:i,price:highs[i],type:'H'});
-      else if(isL) pivots.push({idx:i,price:lows[i],type:'L'});
+    # Find lowest point AFTER ATH (potential W2 bottom)
+    post_ath_lows = lows[ath_idx:]
+    if len(post_ath_lows) > 1:
+        w2_bot_rel = int(np.argmin(post_ath_lows))
+        w2_bot     = float(post_ath_lows[w2_bot_rel])
+        w2_bot_idx = ath_idx + w2_bot_rel
+        w2_retrace = (ath - w2_bot) / w1_range
+    else:
+        w2_bot     = current
+        w2_bot_idx = ath_idx
+        w2_retrace = retrace_from_ath
+
+    # Determine cycle position
+    # W2: price has pulled back 38-100% from ATH, not yet recovered
+    # W3: price recovered from W2 bottom and making new highs or near ATH
+    # W4: price pulled back from W3 top (23-38% of W3 range)
+    # W5: price near or above ATH after W4
+
+    in_w2_zone = (0.38 <= retrace_from_ath <= 1.00) and \
+                 (current < ath * 0.95)  # not near ATH
+
+    # Check if price has recovered significantly from W2 bottom
+    if w2_bot < ath and w2_bot > atl:
+        recovery_from_w2 = (current - w2_bot) / max(ath - w2_bot, 0.0001)
+    else:
+        recovery_from_w2 = 0
+
+    # Find W3 top — highest point after W2 bottom
+    post_w2_highs = highs[w2_bot_idx:]
+    w3_top = float(np.max(post_w2_highs)) if len(post_w2_highs) > 0 else current
+    w3_range = w3_top - w2_bot if w3_top > w2_bot else 0
+
+    # W4 retrace from W3 top
+    retrace_from_w3 = (w3_top - current) / w3_range if w3_range > 0 else 0
+    in_w4_zone = (0.23 <= retrace_from_w3 <= 0.50) and \
+                 (w3_top > ath * 0.95)  # W3 must have exceeded or nearly ATH
+
+    # Cycle position
+    if current >= ath * 0.95:
+        cycle_pos = 'W3_OR_W5_TOP'
+    elif in_w4_zone:
+        cycle_pos = 'W4'
+    elif recovery_from_w2 > 0.5 and current > ath * 0.5:
+        cycle_pos = 'W3'
+    elif in_w2_zone:
+        cycle_pos = 'W2'
+    else:
+        cycle_pos = 'UNKNOWN'
+
+    # W3 of W3 Fibonacci targets (from W2 bottom)
+    w3_targets = {
+        '1.618': round(w2_bot + w1_range * 1.618, 6),
+        '2.000': round(w2_bot + w1_range * 2.000, 6),
+        '2.618': round(w2_bot + w1_range * 2.618, 6),
+    } if w2_bot > 0 else {}
+
+    # Invalidation levels
+    invalidation = {
+        'w2_invalid':  round(atl * 0.95, 6),   # below ATL = full recount
+        'w3_invalid':  round(ath - w1_range * 1.05, 6),  # W3 below W1 top
     }
-    if(pivots.length>=8) break;
-  }
-  return pivots;
-}
 
-// ─────────────────────────────────────────────────────────────
-// EW RULE VALIDATION
-// ─────────────────────────────────────────────────────────────
-function validateEWRules(w0,w1h,w2l,w3h,w4l,w5h){
-  var issues=[];
-  var w1=w1h-w0;
-  if(w1<=0){ return {valid:false,issues:['W1 range zero']}; }
-  if(w2l<=w0)        issues.push('W2 > 100% of W1');
-  var w3=w3h-w2l, w5=w5h-w4l;
-  if(w3<=0)          issues.push('W3 range zero');
-  else if(w3<w1&&w3<w5) issues.push('W3 is shortest wave');
-  if(w4l<=w1h)       issues.push('W4 overlaps W1');
-  if(w5h<=w3h)       issues.push('W5 below W3 top');
-  return {valid:issues.length===0, issues:issues};
-}
-
-function fibQuality(retrace){
-  if(retrace>=0.618&&retrace<=0.786) return {label:'GOLDEN (61.8–78.6%)',valid:true,golden:true};
-  if(retrace>=0.500&&retrace<0.618)  return {label:'GOOD (50–61.8%)',valid:true,golden:false};
-  if(retrace>=0.382&&retrace<0.500)  return {label:'VALID (38.2–50%)',valid:true,golden:false};
-  if(retrace>0.786&&retrace<=1.000)  return {label:'DEEP (78.6–100%)',valid:true,golden:false};
-  return {label:'INVALID ('+( retrace*100).toFixed(0)+'%)',valid:false,golden:false};
-}
-
-// ─────────────────────────────────────────────────────────────
-// STRUCTURE DETECTORS
-// Each returns a structure object or null
-// ─────────────────────────────────────────────────────────────
-
-// ── 1. Standard EW — W4 entry (active impulse) ───────────────
-function detectStandardEW_W4(pivots, current){
-  if(pivots.length<5) return null;
-  for(var i=pivots.length-5;i>=0;i--){
-    var p=pivots.slice(i,i+5);
-    if(p.length<5) continue;
-    var types=p.map(function(x){return x.type;}).join('');
-    if(types!=='LHLHL') continue;
-    var w0=p[0].price,w1h=p[1].price,w2l=p[2].price,w3h=p[3].price,w4l=p[4].price;
-    var w1=w1h-w0,w3=w3h-w2l;
-    if(w1<=0||w3<=0) continue;
-    if(w2l<=w0)      continue;
-    if(w3<w1)        continue;
-    if(w4l<=w1h)     continue;
-    if(Math.abs(current-w4l)/w4l>0.05) continue;
-    var w2ret=(w1h-w2l)/w1, w4ret=(w3h-w4l)/w3;
-    var fib=fibQuality(w2ret);
-    // Swing TPs: structure-based
     return {
-      type:'STANDARD_EW_W4',
-      w0:w0,w1h:w1h,w2l:w2l,w3h:w3h,w4l:w4l,w5h:null,
-      w1:w1,w3:w3,
-      w2ret:w2ret,w4ret:w4ret,
-      fibLabel:fib.label,fibValid:fib.valid,fibGolden:fib.golden,
-      entryPrice:w4l, structLow:w4l,
-      entryWave:'W4',
-      // Swing levels from actual wave structure
-      swingSL:  w4l*0.98,
-      swingTP1: w3h,                // W3 top — first resistance
-      swingTP2: w4l+w1*1.618,       // 1.618×W1 — W5 projection
-      swingTP3: w4l+w1*2.0,
-      swingTP4: w4l+w1*2.618,
-      tp1Lbl:'W3 high retest',
-      tp2Lbl:'1.618×W1 (W5 proj)',
-      tp3Lbl:'2.0×W1',
-      tp4Lbl:'2.618×W1',
-      slLbl:'2% below W4 low',
-      applySit:['waveCount','goldenRatio','alternation','blueBox','stoch','smi','ewo','volDec','volExp']
-    };
-  }
-  return null;
-}
-
-// ── 2. Standard EW — W2 entry (after full impulse) ───────────
-function detectStandardEW_W2(pivots, current){
-  if(pivots.length<6) return null;
-  for(var i=pivots.length-6;i>=0;i--){
-    var p=pivots.slice(i,i+6);
-    if(p.length<6) continue;
-    var types=p.map(function(x){return x.type;}).join('');
-    if(types!=='LHLHLH') continue;
-    var w0=p[0].price,w1h=p[1].price,w2l=p[2].price,w3h=p[3].price,w4l=p[4].price,w5h=p[5].price;
-    var res=validateEWRules(w0,w1h,w2l,w3h,w4l,w5h);
-    if(!res.valid) continue;
-    if(Math.abs(current-w2l)/w2l>0.05) continue;
-    var w1=w1h-w0, w2ret=(w1h-w2l)/w1;
-    var fib=fibQuality(w2ret);
-    return {
-      type:'STANDARD_EW_W2',
-      w0:w0,w1h:w1h,w2l:w2l,w3h:w3h,w4l:w4l,w5h:w5h,
-      w1:w1,w3:w3h-w2l,
-      w2ret:w2ret,
-      fibLabel:fib.label,fibValid:fib.valid,fibGolden:fib.golden,
-      entryPrice:w2l, structLow:w2l,
-      entryWave:'W2',
-      swingSL:  w2l*0.98,
-      swingTP1: w1h,                // W1 top retest
-      swingTP2: w2l+w1*1.618,       // 1.618×W1
-      swingTP3: w2l+w1*2.618,
-      swingTP4: w5h,                // prior W5 top
-      tp1Lbl:'W1 high retest',
-      tp2Lbl:'1.618×W1 (W3 target)',
-      tp3Lbl:'2.618×W1',
-      tp4Lbl:'Prior W5 top',
-      slLbl:'2% below W2 low',
-      applySit:['waveCount','goldenRatio','waveSym','stoch','smi','ewo','volDec','volExp']
-    };
-  }
-  return null;
-}
-
-// ── 3. ABC Zigzag — completed impulse + 5-3-5 correction ─────
-function detectABCZigzag(pivots, current){
-  if(pivots.length<8) return null;
-  // Find completed impulse
-  var impulse=null, w5idx=0;
-  for(var i=pivots.length-6;i>=0;i--){
-    var p=pivots.slice(i,i+6);
-    if(p.length<6) continue;
-    var types=p.map(function(x){return x.type;}).join('');
-    if(types!=='LHLHLH') continue;
-    var res=validateEWRules(p[0].price,p[1].price,p[2].price,p[3].price,p[4].price,p[5].price);
-    if(res.valid){ impulse=p; w5idx=p[5].idx; break; }
-  }
-  if(!impulse) return null;
-  var w5h=impulse[5].price;
-  var post=pivots.filter(function(p){return p.idx>w5idx;});
-  if(post.length<2) return null;
-  // Wave A — first Low after W5
-  var aP=null; for(var j=0;j<post.length;j++){ if(post[j].type==='L'){aP=post[j];break;} }
-  if(!aP) return null;
-  var waBot=aP.price, waRange=w5h-waBot;
-  if(waRange/w5h<0.08) return null;
-  // Wave B — first High after A (zigzag: 38–78% retrace of A)
-  var postA=post.filter(function(p){return p.idx>aP.idx;});
-  var bP=null; for(var j=0;j<postA.length;j++){ if(postA[j].type==='H'){bP=postA[j];break;} }
-  if(!bP) return null;
-  var wbTop=bP.price, wbRet=(wbTop-waBot)/waRange;
-  if(wbRet<0.38||wbRet>0.78) return null;
-  // Wave C — first Low after B (or current if developing)
-  var postB=post.filter(function(p){return p.idx>bP.idx;});
-  var cP=null; for(var j=0;j<postB.length;j++){ if(postB[j].type==='L'){cP=postB[j];break;} }
-  var cDev=(cP===null);
-  var wcBot=cDev?current:cP.price;
-  var wcRange=wbTop-wcBot;
-  if(wcRange<=0) return null;
-  var cProgress=wcRange/waRange*100;
-  if(cProgress<70) return null;
-  var cTarget=wbTop-waRange;
-  var cConfirmed=Math.abs(wcBot-cTarget)/Math.max(Math.abs(cTarget),0.0001)<0.05;
-  return {
-    type:'ABC_ZIGZAG',
-    w5h:w5h, waBot:waBot, waRange:waRange,
-    wbTop:wbTop, wbRetPct:(wbRet*100).toFixed(1),
-    wcBot:wcBot, wcRange:wcRange, cDev:cDev,
-    cTarget:cTarget, cProgress:cProgress.toFixed(1), cConfirmed:cConfirmed,
-    entryPrice:wcBot, structLow:wcBot,
-    entryWave:'Wave C',
-    swingSL:  wcBot*0.98,
-    swingTP1: wbTop,                    // Wave B top
-    swingTP2: w5h,                      // W5 top (correction origin)
-    swingTP3: wcBot+waRange*1.618,      // 1.618×A from C
-    swingTP4: wcBot+waRange*2.618,      // 2.618×A from C
-    tp1Lbl:'Wave B top',
-    tp2Lbl:'W5 top (correction origin)',
-    tp3Lbl:'1.618×Wave A from C',
-    tp4Lbl:'2.618×Wave A from C',
-    slLbl:'2% below Wave C low',
-    applySit:['waveCBot','cEqA','abcStruct','stoch','smi','ewo','volDec','volExp']
-  };
-}
-
-// ── 4. Expanded Flat — B exceeds W5 top ──────────────────────
-function detectExpandedFlat(pivots, current){
-  if(pivots.length<8) return null;
-  var impulse=null, w5idx=0;
-  for(var i=pivots.length-6;i>=0;i--){
-    var p=pivots.slice(i,i+6);
-    if(p.length<6) continue;
-    var types=p.map(function(x){return x.type;}).join('');
-    if(types!=='LHLHLH') continue;
-    var res=validateEWRules(p[0].price,p[1].price,p[2].price,p[3].price,p[4].price,p[5].price);
-    if(res.valid){ impulse=p; w5idx=p[5].idx; break; }
-  }
-  if(!impulse) return null;
-  var w5h=impulse[5].price;
-  var post=pivots.filter(function(p){return p.idx>w5idx;});
-  if(post.length<3) return null;
-  var aP=null; for(var j=0;j<post.length;j++){ if(post[j].type==='L'){aP=post[j];break;} }
-  if(!aP) return null;
-  var waBot=aP.price, waRange=w5h-waBot;
-  if(waRange<=0) return null;
-  var postA=post.filter(function(p){return p.idx>aP.idx;});
-  var bP=null; for(var j=0;j<postA.length;j++){ if(postA[j].type==='H'){bP=postA[j];break;} }
-  if(!bP) return null;
-  var wbTop=bP.price;
-  // KEY: B must exceed W5 top (expanded flat signature)
-  if(wbTop<=w5h) return null;
-  var wbRet=(wbTop-waBot)/waRange; // will be >1.0
-  var postB=post.filter(function(p){return p.idx>bP.idx;});
-  var cP=null; for(var j=0;j<postB.length;j++){ if(postB[j].type==='L'){cP=postB[j];break;} }
-  var cDev=(cP===null);
-  var wcBot=cDev?current:cP.price;
-  var wcRange=wbTop-wcBot;
-  if(wcRange<=0) return null;
-  var cVsA=wcRange/waRange;
-  var cProgress=Math.min(cVsA/1.236*100,100);
-  if(cProgress<70) return null;
-  var cT1236=wbTop-waRange*1.236, cT1618=wbTop-waRange*1.618;
-  return {
-    type:'EXPANDED_FLAT',
-    w5h:w5h, waBot:waBot, waRange:waRange,
-    wbTop:wbTop, wbRetPct:(wbRet*100).toFixed(1),
-    wcBot:wcBot, wcRange:wcRange, cDev:cDev,
-    cVsAPct:(cVsA*100).toFixed(1), cProgress:cProgress.toFixed(1),
-    cT1236:cT1236, cT1618:cT1618,
-    entryPrice:wcBot, structLow:wcBot,
-    entryWave:'Wave C',
-    swingSL:  wcBot*0.98,
-    swingTP1: waBot,                    // Wave A bottom
-    swingTP2: wbTop,                    // Wave B top (new high)
-    swingTP3: wcBot+waRange*1.618,
-    swingTP4: wcBot+waRange*2.0,
-    tp1Lbl:'Wave A bottom',
-    tp2Lbl:'Wave B top (new high)',
-    tp3Lbl:'1.618×Wave A from C',
-    tp4Lbl:'2.0×Wave A from C',
-    slLbl:'2% below Wave C low',
-    applySit:['waveCBot','abcStruct','stoch','smi','ewo','volDec','volExp']
-  };
-}
-
-// ── 5. Running Correction — C above A bottom (bullish) ────────
-function detectRunningCorrection(pivots, current){
-  if(pivots.length<8) return null;
-  var impulse=null, w5idx=0, w1rng=0;
-  for(var i=pivots.length-6;i>=0;i--){
-    var p=pivots.slice(i,i+6);
-    if(p.length<6) continue;
-    var types=p.map(function(x){return x.type;}).join('');
-    if(types!=='LHLHLH') continue;
-    var res=validateEWRules(p[0].price,p[1].price,p[2].price,p[3].price,p[4].price,p[5].price);
-    if(res.valid){ impulse=p; w5idx=p[5].idx; w1rng=p[1].price-p[0].price; break; }
-  }
-  if(!impulse) return null;
-  var w5h=impulse[5].price;
-  var post=pivots.filter(function(p){return p.idx>w5idx;});
-  if(post.length<3) return null;
-  var aP=null; for(var j=0;j<post.length;j++){ if(post[j].type==='L'){aP=post[j];break;} }
-  if(!aP) return null;
-  var waBot=aP.price, waRange=w5h-waBot;
-  if(waRange<=0) return null;
-  var postA=post.filter(function(p){return p.idx>aP.idx;});
-  var bP=null; for(var j=0;j<postA.length;j++){ if(postA[j].type==='H'){bP=postA[j];break;} }
-  if(!bP) return null;
-  var wbTop=bP.price, wbRet=(wbTop-waBot)/waRange;
-  if(wbRet<0.38||wbRet>0.78) return null;
-  var postB=post.filter(function(p){return p.idx>bP.idx;});
-  var cP=null; for(var j=0;j<postB.length;j++){ if(postB[j].type==='L'){cP=postB[j];break;} }
-  var cDev=(cP===null);
-  var wcBot=cDev?current:cP.price;
-  // KEY: C must stay ABOVE Wave A bottom
-  if(wcBot<=waBot) return null;
-  var wcRange=wbTop-wcBot, cVsA=wcRange/waRange;
-  if(cVsA<0.38) return null;
-  return {
-    type:'RUNNING_CORRECTION',
-    w5h:w5h, w1rng:w1rng,
-    waBot:waBot, waRange:waRange,
-    wbTop:wbTop, wbRetPct:(wbRet*100).toFixed(1),
-    wcBot:wcBot, wcRange:wcRange, cDev:cDev,
-    cVsAPct:(cVsA*100).toFixed(1), higherLow:true,
-    entryPrice:wcBot, structLow:wcBot,
-    entryWave:'Wave C (Higher Low)',
-    swingSL:  wcBot*0.98,
-    swingTP1: wbTop,                    // Wave B top
-    swingTP2: w5h,                      // W5 top
-    swingTP3: w5h+w1rng*1.0,           // W5 + 1.0×W1
-    swingTP4: w5h+w1rng*1.618,         // W5 + 1.618×W1
-    tp1Lbl:'Wave B top',
-    tp2Lbl:'W5 top (full recovery)',
-    tp3Lbl:'W5 + 1.0×W1 (next impulse)',
-    tp4Lbl:'W5 + 1.618×W1 (extended)',
-    slLbl:'2% below Wave C (higher low)',
-    applySit:['waveCBot','abcStruct','waveCount','stoch','smi','ewo','volDec','volExp']
-  };
-}
-
-// ── 6. W-X-Y-X-Z Triple Combination ──────────────────────────
-function detectWXYXZ(pivots, current){
-  if(pivots.length<10) return null;
-  for(var i=pivots.length-10;i>=0;i--){
-    var seg=pivots.slice(i,i+10);
-    if(seg.length<10) continue;
-    var types=seg.slice(0,5).map(function(x){return x.type;}).join('');
-    if(types!=='HLHLH') continue;
-    var wTop=seg[0].price, wBot=seg[1].price;
-    var x1Top=seg[2].price, yBot=seg[3].price, x2Top=seg[4].price;
-    var x1Range=x1Top-wBot, x2Range=x2Top-yBot;
-    var x1Time=seg[2].idx-seg[1].idx, x2Time=seg[4].idx-seg[3].idx;
-    if(x1Range<=0||x1Time<=0) continue;
-    // X moves must be >5%
-    if(wBot>0&&x1Range/wBot<0.05) continue;
-    if(yBot>0&&x2Range/yBot<0.05) continue;
-    // X smaller than W and Y
-    if(x1Range>=(wTop-wBot)*0.8||x1Range>=(x1Top-yBot)*0.8) continue;
-    // KEY: X1=X2 within 15% both price and time
-    var priceRat=x2Range/x1Range, timeRat=x2Time/x1Time;
-    if(priceRat<0.85||priceRat>1.15||timeRat<0.85||timeRat>1.15) continue;
-    // Z wave — lowest Low after X2 top
-    var postX2=pivots.filter(function(p){return p.idx>seg[4].idx;});
-    var zP=null; for(var j=0;j<postX2.length;j++){ if(postX2[j].type==='L'){zP=postX2[j];break;} }
-    var zDev=(zP===null), zBot=zDev?current:zP.price;
-    if(!zDev&&zBot>=yBot) continue;
-    var moveUp=wTop-wBot;
-    return {
-      type:'WXYXZ',
-      wTop:wTop, wBot:wBot, x1Top:x1Top, yBot:yBot, x2Top:x2Top,
-      zBot:zBot, zDev:zDev,
-      x1Range:x1Range, x2Range:x2Range,
-      priceDiffPct:((Math.abs(x1Range-x2Range)/x1Range)*100).toFixed(1),
-      timeDiffPct:((Math.abs(x1Time-x2Time)/x1Time)*100).toFixed(1),
-      x1EqX2:true,
-      entryPrice:zBot, structLow:zBot,
-      entryWave:'Wave Z',
-      swingSL:  zBot*0.98,
-      swingTP1: x2Top,                  // X2 top
-      swingTP2: wTop,                   // W origin
-      swingTP3: wTop+moveUp*0.618,
-      swingTP4: wTop+moveUp*1.0,
-      tp1Lbl:'X2 top (connector high)',
-      tp2Lbl:'W origin (correction start)',
-      tp3Lbl:'W top + 0.618×W range',
-      tp4Lbl:'W top + 1.0×W range',
-      slLbl:'2% below Z wave low',
-      applySit:['wxyxzX1X2','waveCount','stoch','smi','ewo','volDec','volExp']
-    };
-  }
-  return null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// STRUCTURE RECOGNIZER
-// Priority: rarest first, most common last
-// ─────────────────────────────────────────────────────────────
-function recognizeStructure(pivots, current){
-  var s;
-  s=detectWXYXZ(pivots,current);         if(s) return s;
-  s=detectExpandedFlat(pivots,current);  if(s) return s;
-  s=detectRunningCorrection(pivots,current); if(s) return s;
-  s=detectABCZigzag(pivots,current);     if(s) return s;
-  s=detectStandardEW_W4(pivots,current); if(s) return s;
-  s=detectStandardEW_W2(pivots,current); if(s) return s;
-  return null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// SIGNAL LEVELS
-// SCALP: fixed percentages always
-// SWING: from structure wave levels
-// ─────────────────────────────────────────────────────────────
-function buildLevels(structure, current){
-  if(mode==='scalp'){
-    return {
-      entry:  current,
-      sl:     current*0.95,   slPct:'-5%',   slLbl:'-5% fixed',
-      tp1:    current*1.03,   tp1Pct:'+3%',  tp1Lbl:'+3% fixed',
-      tp2:    current*1.05,   tp2Pct:'+5%',  tp2Lbl:'+5% fixed',
-      tp3:    current*1.08,   tp3Pct:'+8%',  tp3Lbl:'+8% fixed',
-      tp4:    current*1.10,   tp4Pct:'+10%', tp4Lbl:'+10% fixed',
-    };
-  }
-  // Swing: structure-based
-  var e=structure.entryPrice;
-  function pp(t){ return (t>0&&e>0) ? fpc((t-e)/e*100*10/10) : ''; }
-  return {
-    entry:  e,
-    sl:     structure.swingSL,  slPct:'-2% buffer', slLbl:structure.slLbl,
-    tp1:    structure.swingTP1, tp1Pct:pp(structure.swingTP1), tp1Lbl:structure.tp1Lbl,
-    tp2:    structure.swingTP2, tp2Pct:pp(structure.swingTP2), tp2Lbl:structure.tp2Lbl,
-    tp3:    structure.swingTP3, tp3Pct:pp(structure.swingTP3), tp3Lbl:structure.tp3Lbl,
-    tp4:    structure.swingTP4, tp4Pct:pp(structure.swingTP4), tp4Lbl:structure.tp4Lbl,
-  };
-}
-
-// ─────────────────────────────────────────────────────────────
-// CHECKLIST — 10 required + situational per structure
-// ─────────────────────────────────────────────────────────────
-function buildChecklist(structure, current, prices, highs, lows, rsi, macd, stoch, smi, ewoVal, volRes, ma50){
-  var stype = structure ? structure.type : 'NONE';
-  var apply = structure ? structure.applySit : [];
-
-  // Required checks — ALL must pass
-  var req = [
-    { l:'Daily Trend Bullish',  ok: current>ma50, cat:'TF' },
-    { l:'MA50 Confirmed',       ok: current>ma50, cat:'TF' },
-    { l:'Core Structure Found', ok: structure!==null, cat:'EW' },
-    { l:'EW Rules Valid',       ok: structure!==null, cat:'EW' },
-    // Entry zone — label adapts to structure
-    { l:'Entry Zone ('+( structure?structure.entryWave:'none')+')',
-      ok: structure!==null && Math.abs(current-structure.entryPrice)/Math.max(structure.entryPrice,0.0001)<0.05, cat:'EW' },
-    // Fib check — adapts per structure
-    buildFibCheck(structure),
-    { l:'RSI Below 45 ('+rsi.toFixed(0)+')', ok:rsi<45, cat:'Mom' },
-    { l:'MACD Bullish',  ok:macd.cross||macd.turning, cat:'Mom' },
-    { l:'No Ending Diagonal', ok:true, cat:'EW' },
-    { l:'No Truncated W5',    ok:true, cat:'EW' },
-  ];
-
-  // Situational — ■ = not applicable, based on structure
-  var allSit = [
-    { key:'waveCount',  l:'Wave Count Verified >60%',
-      ok: structure&&structure.w3&&structure.w1&&(structure.w3/structure.w1)>1.0, cat:'EW',
-      note:'Bonus' },
-    { key:'goldenRatio', l:'Golden Ratio (61.8–78.6%)',
-      ok: structure&&structure.w2ret&&structure.w2ret>=0.618&&structure.w2ret<=0.786, cat:'Fib',
-      note:'W2 in golden zone' },
-    { key:'waveCBot', l:'Wave C Bottom',
-      ok: structure&&structure.cProgress&&parseFloat(structure.cProgress)>=80, cat:'EW',
-      note:'ABC corrections only' },
-    { key:'cEqA', l:'C=A Price Confirmed',
-      ok: structure&&structure.cConfirmed===true, cat:'Fib',
-      note:'ABC corrections only' },
-    { key:'wxyxzX1X2', l:'WXYXZ X1=X2 (Price+Time)',
-      ok: structure&&structure.x1EqX2===true, cat:'EW',
-      note:'Triple combo only' },
-    { key:'abcStruct', l:'ABC Structure',
-      ok: stype==='ABC_ZIGZAG'||stype==='EXPANDED_FLAT'||stype==='RUNNING_CORRECTION', cat:'Struct',
-      note:'Corrective patterns only' },
-    { key:'stoch', l:'Stoch Below 25 ('+stoch.toFixed(0)+')',
-      ok: stoch<25, cat:'Mom', note:'' },
-    { key:'smi', l:'SMI Below -40 ('+smi.toFixed(0)+')',
-      ok: smi<-40, cat:'Mom', note:'' },
-    { key:'ewo', l:'EWO Signal',
-      ok: ewoVal>0, cat:'Mom', note:'' },
-    { key:'volDec', l:'Volume Declining (correction)',
-      ok: volRes.declining, cat:'Vol', note:'' },
-    { key:'volExp', l:'Volume Expanding (reversal)',
-      ok: volRes.expanding, cat:'Vol', note:'' },
-    { key:'alternation', l:'Alternation W2≠W4',
-      ok: structure&&structure.w2ret&&structure.w4ret&&Math.abs(structure.w2ret-structure.w4ret)>0.15,
-      cat:'Struct', note:'When W4 exists' },
-    { key:'waveSym', l:'Wave Symmetry (W3>W1, W5<W3)',
-      ok: structure&&structure.w1&&structure.w3&&structure.w3>structure.w1, cat:'Struct',
-      note:'When W5 complete' },
-    { key:'blueBox', l:'Blue Box Zone (0.618–0.786)',
-      ok: structure&&structure.w2ret&&structure.w2ret>=0.618&&structure.w2ret<=0.786,
-      cat:'Struct', note:'When Fib box forms' },
-  ];
-
-  // Mark each situational as applicable or N/A
-  var sit = allSit.map(function(s){
-    var applicable = apply.indexOf(s.key)>=0;
-    return { l:s.l, ok:applicable?s.ok:false, applicable:applicable, cat:s.cat, note:s.note };
-  });
-
-  var reqPass = req.filter(function(r){return r.ok;}).length;
-  var sitApplicable = sit.filter(function(s){return s.applicable;});
-  var sitPass = sitApplicable.filter(function(s){return s.ok;}).length;
-  var sitNA   = sit.filter(function(s){return !s.applicable;}).length;
-
-  return { req:req, sit:sit, reqPass:reqPass, reqTotal:req.length, sitPass:sitPass, sitTotal:sitApplicable.length, sitNA:sitNA };
-}
-
-function buildFibCheck(s){
-  if(!s) return {l:'Fib / Structure Check',ok:false,cat:'Fib'};
-  var t=s.type;
-  if(t==='STANDARD_EW_W4'||t==='STANDARD_EW_W2')
-    return {l:'W2 Fib 38–100%: '+(s.fibLabel||''),ok:s.fibValid,cat:'Fib'};
-  if(t==='ABC_ZIGZAG')
-    return {l:'C=A Progress ≥70% ('+s.cProgress+'%)',ok:parseFloat(s.cProgress)>=70,cat:'Fib'};
-  if(t==='EXPANDED_FLAT')
-    return {l:'C Progress ≥70% (1.236×A) ('+s.cProgress+'%)',ok:parseFloat(s.cProgress)>=70,cat:'Fib'};
-  if(t==='RUNNING_CORRECTION')
-    return {l:'C Above A Bottom (Higher Low)',ok:s.higherLow===true,cat:'Fib'};
-  if(t==='WXYXZ')
-    return {l:'X1=X2 Confirmed (Price+Time)',ok:s.x1EqX2===true,cat:'Fib'};
-  return {l:'Structure Check',ok:false,cat:'Fib'};
-}
-
-// ─────────────────────────────────────────────────────────────
-// OLD TOOLS (unchanged — kept for wave count display)
-// ─────────────────────────────────────────────────────────────
-function findPivotsLegacy(prices,minMove){
-  minMove=minMove||0.10;
-  var n=prices.length,win=Math.max(3,Math.floor(n/20)),pivots=[],i,sl,mx,mn;
-  for(i=win;i<n-win;i++){
-    sl=prices.slice(i-win,i+win+1);mx=Math.max.apply(null,sl);mn=Math.min.apply(null,sl);
-    if(prices[i]===mx&&prices[i]>prices[i-1]&&prices[i]>prices[i+1])
-      pivots.push({idx:i,price:prices[i],type:'peak'});
-    else if(prices[i]===mn&&prices[i]<prices[i-1]&&prices[i]<prices[i+1])
-      pivots.push({idx:i,price:prices[i],type:'trough'});
-  }
-  var st=prices[0]<prices[Math.min(10,n-1)]?'trough':'peak';
-  pivots.unshift({idx:0,price:prices[0],type:st});
-  pivots.push({idx:n-1,price:prices[n-1],type:'current'});
-  var sig=[pivots[0]],k,prev,curr,move;
-  for(k=1;k<pivots.length;k++){
-    prev=sig[sig.length-1];curr=pivots[k];
-    if(prev.type===curr.type){
-      if(curr.type==='peak'&&curr.price>prev.price)sig[sig.length-1]=curr;
-      else if(curr.type==='trough'&&curr.price<prev.price)sig[sig.length-1]=curr;
-      continue;
+        'symbol':        symbol,
+        'atl':           atl,
+        'ath':           ath,
+        'w1_range':      w1_range,
+        'w2_bot':        w2_bot,
+        'w2_retrace':    round(w2_retrace, 3),
+        'w3_top':        w3_top,
+        'w3_range':      w3_range,
+        'current':       current,
+        'retrace_ath':   round(retrace_from_ath, 3),
+        'recovery_w2':   round(recovery_from_w2, 3),
+        'cycle_pos':     cycle_pos,
+        'fib_levels':    fib_levels,
+        'w3_targets':    w3_targets,
+        'invalidation':  invalidation,
+        'ath_candles_ago': ath_candles_ago,
     }
-    move=Math.abs((curr.price-prev.price)/prev.price);
-    if(move>=minMove)sig.push(curr);
-  }
-  return sig;
-}
-function validateEW(pv){
-  var issues=[];
-  if(pv.length>=3){var w1r=Math.abs(pv[1].price-pv[0].price);if(w1r>0){var w2r=Math.abs(pv[2].price-pv[1].price)/w1r*100;if(pv[2].price<pv[0].price)issues.push('W2>100% W1');else if(w2r<38)issues.push('W2 shallow('+w2r.toFixed(0)+'%)');}}
-  if(pv.length>=4){var w1s=Math.abs(pv[1].price-pv[0].price),w3s=Math.abs(pv[3].price-pv[2].price);if(w3s<w1s)issues.push('W3<W1');}
-  if(pv.length>=5&&pv[4].price<pv[1].price)issues.push('W4 overlaps W1');
-  return{valid:issues.length===0,issues:issues};
-}
-function verifyWaves(waves,prices,vols){
-  if(!waves||waves.length<3)return{score:0,passed:0,total:0,results:[],confidence:'LOW'};
-  var res=[],tot=0,pass=0;
-  function rsiAt(idx){return calcRSI(prices.slice(0,Math.min(idx+1,prices.length)));}
-  function volAt(idx){if(!vols||!vols.length)return 0;var s=Math.max(0,idx-3),e=Math.min(vols.length-1,idx+3),sum=0,n=0;for(var j=s;j<=e;j++){sum+=vols[j]||0;n++;}return n?sum/n:0;}
-  if(waves.length>=3){var w1r=Math.abs(waves[1].price-waves[0].price),w2r=w1r>0?Math.abs(waves[2].price-waves[1].price)/w1r*100:0,ok=w2r>=38&&w2r<=78.6;tot++;if(ok)pass++;res.push({wave:'W2',check:'Fib 38-78%',ok:ok,detail:w2r.toFixed(0)+'% retrace'});}
-  if(waves.length>=4){var w1s=Math.abs(waves[1].price-waves[0].price),w3s=Math.abs(waves[3].price-waves[2].price),ok2=w3s>=w1s;tot++;if(ok2)pass++;res.push({wave:'W3',check:'Ext >100%',ok:ok2,detail:(w1s>0?w3s/w1s*100:0).toFixed(0)+'% of W1'});}
-  if(waves.length>=5){var w3s2=Math.abs(waves[3].price-waves[2].price),w4r2=w3s2>0?Math.abs(waves[4].price-waves[3].price)/w3s2*100:0,ok3=w4r2>=23&&w4r2<=50;tot++;if(ok3)pass++;res.push({wave:'W4',check:'Fib 23-50%',ok:ok3,detail:w4r2.toFixed(0)+'% retrace'});}
-  if(waves.length>=3){var r2=rsiAt(waves[2].idx),ok4=r2<50;tot++;if(ok4)pass++;res.push({wave:'W2',check:'RSI Oversold',ok:ok4,detail:'RSI:'+r2.toFixed(0)});}
-  if(waves.length>=4){var r3=rsiAt(waves[3].idx),ok5=r3>55;tot++;if(ok5)pass++;res.push({wave:'W3',check:'RSI Strong',ok:ok5,detail:'RSI:'+r3.toFixed(0)});}
-  if(waves.length>=4&&vols&&vols.length){var v1=volAt(waves[1].idx),v3=volAt(waves[3].idx),ok6=v3>=v1*0.7;tot++;if(ok6)pass++;res.push({wave:'W3',check:'Vol Strong',ok:ok6,detail:ok6?'Strong':'Weak'});}
-  if(waves.length>=5&&vols&&vols.length){var v3b=volAt(waves[3].idx),v4=volAt(waves[4].idx),ok7=v4<=v3b*1.2;tot++;if(ok7)pass++;res.push({wave:'W4',check:'Vol Decline',ok:ok7,detail:ok7?'Declining':'Too high'});}
-  var pct=tot>0?pass/tot*100:0,conf=pct>=80?'HIGH':pct>=60?'MEDIUM':pct>=40?'LOW':'VERY LOW';
-  return{score:pct,passed:pass,total:tot,results:res,confidence:conf};
-}
-function checkWaveSymmetry(waves){
-  if(waves.length<5)return{valid:true,score:0,note:'Need 5 waves',details:[]};
-  var details=[],score=0,total=0;
-  var w1=Math.abs(waves[1].price-waves[0].price),w3=waves.length>=4?Math.abs(waves[3].price-waves[2].price):0,w5=waves.length>=6?Math.abs(waves[5].price-waves[4].price):0;
-  if(w3>0&&w1>0){var r=w3/w1,ok=r>=1.0;total++;if(ok)score++;details.push({label:'W3 > W1',ok:ok,detail:(r*100).toFixed(0)+'% of W1'});}
-  if(w5>0&&w3>0){var r2=w5/w3,ok2=r2<=1.2;total++;if(ok2)score++;details.push({label:'W5 ≤ W3',ok:ok2,detail:(r2*100).toFixed(0)+'% of W3'});}
-  var w2s=waves.length>=3?Math.abs(waves[2].price-waves[1].price):0,w4s=waves.length>=5?Math.abs(waves[4].price-waves[3].price):0;
-  if(w2s>0&&w4s>0){var ratio=Math.abs(w2s-w4s)/Math.max(w2s,w4s),ok3=ratio>=0.15;total++;if(ok3)score++;details.push({label:'W2≠W4 Size',ok:ok3,detail:(ratio*100).toFixed(0)+'% difference'});}
-  if(w5>0&&w1>0&&w3>w1*1.5){var r3=w5/w1,ok4=r3>=0.5&&r3<=2.0;total++;if(ok4)score++;details.push({label:'W1≈W5',ok:ok4,detail:(r3*100).toFixed(0)+'% of W1'});}
-  var p=total>0?score/total*100:50;
-  return{valid:p>=60,score:p,details:details,note:p>=80?'Symmetry excellent':p>=60?'Symmetry good':'Symmetry poor'};
-}
-function calcCEqualsA(pivots,current){
-  if(pivots.length<4)return{inZone:false,target:0,label:'Need more data'};
-  for(var i=pivots.length-4;i>=0;i--){
-    var p0=pivots[i],p1=pivots[i+1],p2=pivots[i+2],p3=pivots[i+3];
-    if(!(p0.type==='peak'&&p1.type==='trough'&&p2.type==='peak'&&p3.type==='trough'))continue;
-    var waveA=Math.abs(p0.price-p1.price);if(waveA===0)continue;
-    var cStart=p2.price,caTarget=cStart-waveA,caExt=cStart-waveA*1.618;
-    var caRatio=(cStart-current)/waveA*100;
-    var proxCA=Math.abs(current-caTarget)/Math.abs(caTarget)*100;
-    var proxExt=Math.abs(current-caExt)/Math.abs(caExt)*100;
-    var aTime=p1.idx-p0.idx,cTime=p3.idx-p2.idx;
-    var timeRatio=aTime>0?cTime/aTime*100:0;
-    var timeEqual=timeRatio>=80&&timeRatio<=120;
-    var timeNote='Time: '+timeRatio.toFixed(0)+'% of Wave A';
-    if(proxCA<=5&&timeEqual)return{inZone:true,target:caTarget,ratio:caRatio,label:'C=A Price+Time ✓ ('+timeNote+')'};
-    if(proxCA<=5)return{inZone:true,target:caTarget,ratio:caRatio,label:'C=A Price ✓ | '+timeNote};
-    if(proxExt<=5)return{inZone:true,target:caExt,ratio:caRatio,label:'C=1.618xA ✓ | '+timeNote};
-    if(caRatio>=80&&caRatio<=120)return{inZone:true,target:caTarget,ratio:caRatio,label:'Near C=A ('+caRatio.toFixed(0)+'% | '+timeNote+')'};
-    return{inZone:false,target:caTarget,ratio:caRatio,label:'C=A at '+fp(caTarget)+' | '+timeNote};
-  }
-  return{inZone:false,target:0,ratio:0,label:'No ABC found'};
-}
-function calcBlueBox(waves){
-  if(waves.length<3)return null;
-  var w0=waves[0].price,w1=waves[1].price,w1r=Math.abs(w1-w0),dir=w1>w0?1:-1;
-  var f618=w1-dir*w1r*0.618,f786=w1-dir*w1r*0.786;
-  var boxTop=Math.max(f618,f786),boxBot=Math.min(f618,f786);
-  var cur=waves[waves.length-1].price,inBox=cur>=boxBot&&cur<=boxTop;
-  var w4Box=null;
-  if(waves.length>=5){
-    var w3s=waves[2].price,w3e=waves[3].price,w3r=Math.abs(w3e-w3s),d3=w3e>w3s?1:-1;
-    var f4a=w3e-d3*w3r*0.382,f4b=w3e-d3*w3r*0.618;
-    w4Box={top:Math.max(f4a,f4b),bottom:Math.min(f4a,f4b),inBox:cur>=Math.min(f4a,f4b)&&cur<=Math.max(f4a,f4b)};
-  }
-  return{w2Box:{top:boxTop,bottom:boxBot,inBox:inBox},w4Box:w4Box,inAnyBox:inBox||(w4Box&&w4Box.inBox),label:inBox?'In W2 Blue Box ✓':(w4Box&&w4Box.inBox)?'In W4 Blue Box ✓':'Outside Blue Box'};
-}
 
-// ─────────────────────────────────────────────────────────────
-// RENDER
-// ─────────────────────────────────────────────────────────────
-function renderPage(stats){
-  var prices = priceData.map(function(d){return d.price;});
-  var highs  = priceData.map(function(d){return d.high||d.price;});
-  var lows   = priceData.map(function(d){return d.low||d.price;});
-  var current = prices[prices.length-1];
-  var ath = (mode==='swing'&&globalATH>0) ? globalATH : Math.max.apply(null,highs);
-  var chg = stats ? parseFloat(stats.priceChangePercent||0) : 0;
-  var name = NAMES[coinSym]||coinSym;
-  var pctATH = ((current-ath)/ath)*100;
-  var ma50 = calcMA50(prices);
 
-  // Indicators
-  var rsi     = calcRSI(prices);
-  var macdRes = calcMACD(prices);
-  var stoch   = calcStoch(prices);
-  var smi     = calcSMI(prices);
-  var ewoVal  = calcEWO(prices);
-  var smiFull = calcSMIFull(prices);
-  var volRes  = volumeAnalysis(volData);
+# ═════════════════════════════════════════════════════════════
+# SECTION 4 — PIVOT DETECTION
+# Adaptive window — reads what the chart actually shows
+# ═════════════════════════════════════════════════════════════
 
-  // Structure-aware pivot detection (H/L based)
-  var hwPivots = findPivots(highs, lows, 5);
+def find_pivots(highs, lows, window=5):
+    """
+    Adaptive pivot detection.
+    Tries window=5 first (better quality), falls to 3 if needed.
+    """
+    for w in [window, 3]:
+        pivots = []
+        n = len(highs)
+        for i in range(w, n - w):
+            is_h = all(highs[i] >= highs[i-j] for j in range(1, w+1)) and \
+                   all(highs[i] >= highs[i+j] for j in range(1, w+1))
+            is_l = all(lows[i]  <= lows[i-j]  for j in range(1, w+1)) and \
+                   all(lows[i]  <= lows[i+j]  for j in range(1, w+1))
+            if is_h:
+                pivots.append((i, float(highs[i]), 'H'))
+            elif is_l:
+                pivots.append((i, float(lows[i]),  'L'))
+        if len(pivots) >= 8:
+            break
+    return pivots
 
-  // Recognize which structure this chart shows
-  var structure = recognizeStructure(hwPivots, current);
-  var structMeta = STRUCT_META[structure?structure.type:'NONE'];
 
-  // Build signal levels from structure
-  var levels = structure ? buildLevels(structure, current) : null;
+# ═════════════════════════════════════════════════════════════
+# SECTION 5 — 3 CARDINAL EW RULES
+# ═════════════════════════════════════════════════════════════
 
-  // Legacy pivots for wave count display (unchanged)
-  var sens = mode==='scalp'?0.05:days<=90?0.06:days<=365?0.10:0.15;
-  var legPivots = findPivotsLegacy(prices, sens);
-  var ewRes = validateEW(legPivots);
-  var waveLabels=['W1','W2','W3','W4','W5','Wave A','Wave B','Wave C'];
-  var waves = legPivots.slice(0,8).map(function(p,i){
-    return{label:waveLabels[i]||('P'+(i+1)),price:p.price,type:p.type,idx:p.idx,
-      date:priceData[p.idx]?priceData[p.idx].date:new Date(),
-      color:p.type==='peak'?'#22c55e':p.type==='trough'?'#ef4444':'#f0b429'};
-  });
-  var verif = verifyWaves(waves,prices,volData);
-  var symmetry = checkWaveSymmetry(waves);
-  var blueBox  = calcBlueBox(waves);
-  var caResult = calcCEqualsA(legPivots, current);
+def validate_ew_rules(w0, w1h, w2l, w3h, w4l, w5h):
+    issues = []
+    w1 = w1h - w0
+    if w1 <= 0:
+        return False, ["W1 range zero"]
+    if w2l <= w0:
+        issues.append("Rule 1: W2 > 100% of W1")
+    w3 = w3h - w2l
+    w5 = w5h - w4l
+    if w3 <= 0:
+        issues.append("W3 range zero")
+    elif w3 < w1 and w3 < w5:
+        issues.append("Rule 2: W3 is shortest")
+    if w4l <= w1h:
+        issues.append("Rule 3: W4 overlaps W1")
+    if w5h <= w3h:
+        issues.append("W5 below W3 top")
+    return len(issues) == 0, issues
 
-  // Checklist
-  var cl = buildChecklist(structure, current, prices, highs, lows, rsi, macdRes, stoch, smi, ewoVal, volRes, ma50);
 
-  // Status
-  var allReqPass = cl.reqPass===cl.reqTotal;
-  var statusTxt, statusCol;
-  if(allReqPass && cl.sitPass>=Math.floor(cl.sitTotal*0.4)){
-    statusTxt=(mode==='scalp'?'⚡ ':'📈 ')+'SIGNAL — '+structMeta.icon+' '+structMeta.label;
-    statusCol='#22c55e';
-  } else if(cl.reqPass>=7){
-    statusTxt='🟡 DEVELOPING — '+cl.reqPass+'/10 Required ('+structMeta.label+')';
-    statusCol='#f0b429';
-  } else {
-    statusTxt='🔴 NO SIGNAL — Wait for Setup';
-    statusCol='#ef4444';
-  }
+def fib_quality(retrace):
+    if 0.618 <= retrace <= 0.786:
+        return "GOLDEN (61.8-78.6%)", True, True
+    elif 0.500 <= retrace < 0.618:
+        return "GOOD (50-61.8%)", True, False
+    elif 0.382 <= retrace < 0.500:
+        return "VALID (38.2-50%)", True, False
+    elif 0.786 < retrace <= 1.000:
+        return "DEEP (78.6-100%)", True, False
+    return f"INVALID ({retrace*100:.1f}%)", False, False
 
-  var confTxt;
-  if(allReqPass&&cl.sitPass>=Math.floor(cl.sitTotal*0.7)) confTxt='HIGH — Full position';
-  else if(allReqPass&&cl.sitPass>=Math.floor(cl.sitTotal*0.4)) confTxt='MEDIUM-HIGH — 75% position';
-  else if(cl.reqPass>=7) confTxt='MEDIUM — 50% position';
-  else confTxt='LOW — Skip this trade';
 
-  var h='';
-  var modeLabel = mode==='scalp'?'SCALP (4H · 90 Days)':'SWING ('+(days===1000?'MAX':days+'D')+')';
-  h+='<div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:12px">'+name+' ('+coinSym+'/USDT) · '+modeLabel+'</div>';
+# ═════════════════════════════════════════════════════════════
+# SECTION 6 — STRUCTURE DETECTION
+#
+# The bot reads the chart and identifies which pattern exists.
+# Each structure has its own detection logic, entry rules,
+# and applicable situational checks.
+#
+# The grand structure (Section 3) informs WHICH structures
+# are most likely — but the chart pattern confirms it.
+#
+# W2 cycle position → likely ABC/flat/running correction
+# W4 cycle position → likely W4 pullback in active impulse
+# W3 cycle position → look for sub-wave W2/W4 entries
+# ═════════════════════════════════════════════════════════════
 
-  // Structure badge
-  h+='<div style="text-align:center;margin-bottom:12px">';
-  h+='<span class="struct-badge" style="background:'+structMeta.color+'18;border:1px solid '+structMeta.color+'44;color:'+structMeta.color+'">'+structMeta.icon+' '+structMeta.label+'</span>';
-  h+='</div>';
+def _find_impulse(pivots):
+    """Most recent valid completed 5-wave impulse (L H L H L H)."""
+    for i in range(len(pivots) - 6, -1, -1):
+        seg = pivots[i:i+6]
+        if len(seg) < 6:
+            continue
+        if [p[2] for p in seg] != ['L','H','L','H','L','H']:
+            continue
+        valid, _ = validate_ew_rules(
+            seg[0][1], seg[1][1], seg[2][1],
+            seg[3][1], seg[4][1], seg[5][1]
+        )
+        if valid:
+            return seg
+    return None
 
-  // Price card
-  h+='<div class="card"><div class="ph"><div>';
-  h+='<div class="ct">LIVE PRICE — BINANCE</div>';
-  h+='<div class="pbig">'+fp(current)+'</div>';
-  h+='<div style="font-size:11px;color:'+(chg>=0?'var(--green)':'var(--red)')+';margin-top:2px">'+fpc(chg)+' 24H</div>';
-  h+='</div><div style="text-align:right;font-size:10px;color:var(--muted);line-height:2">';
-  h+='<div>ATH: <span style="color:var(--gold)">'+fp(ath)+'</span></div>';
-  h+='<div>From ATH: <span style="color:var(--red)">'+fpc(pctATH)+'</span></div>';
-  h+='<div>RSI: <span style="color:'+(rsi<30?'var(--green)':rsi>70?'var(--red)':'var(--orange)')+'">'+rsi.toFixed(1)+'</span></div>';
-  h+='<div>Stoch: <span style="color:'+(stoch<20?'var(--green)':stoch>80?'var(--red)':'var(--orange)')+'">'+stoch.toFixed(0)+'</span></div>';
-  if(structure){
-    h+='<div>Entry: <span style="color:'+structMeta.color+'">'+structure.entryWave+'</span></div>';
-  }
-  h+='</div></div></div>';
 
-  // Charts
-  h+='<div class="card" style="padding:10px"><div class="ct">PRICE + WAVES + SIGNAL LEVELS</div><canvas id="priceChart"></canvas></div>';
-  h+='<div class="card" style="padding:8px"><canvas id="rsiChart"></canvas></div>';
-  h+='<div class="card" style="padding:8px"><canvas id="macdChart"></canvas></div>';
-  h+='<div class="card" style="padding:8px"><canvas id="stochChart"></canvas></div>';
-  h+='<div class="card" style="padding:8px"><canvas id="smiChart"></canvas></div>';
-  h+='<div class="card" style="padding:8px"><canvas id="volChart"></canvas></div>';
+def _post_impulse(pivots, impulse):
+    return [p for p in pivots if p[0] > impulse[5][0]]
 
-  // Status
-  h+='<div class="sb" style="background:'+statusCol+'18;border:1px solid '+statusCol+'44;color:'+statusCol+'">'+statusTxt+'</div>';
 
-  // Signal levels
-  if(levels){
-    h+='<div class="card"><div class="ct">SIGNAL LEVELS — '+mode.toUpperCase()+'</div>';
-    if(mode==='swing'){
-      h+='<div style="font-size:9px;color:var(--muted);margin-bottom:8px;padding:6px;background:#f0b42908;border-radius:4px;border:1px solid #f0b42922">📐 Structure-based levels from: <span style="color:'+structMeta.color+'">'+structMeta.label+'</span></div>';
+# ── Structure 1: Standard EW W4 ──────────────────────────────
+def detect_ew_w4(pivots, current, grand):
+    """
+    Active impulse — price at W4 correction.
+    Most relevant when coin is in W3 cycle position.
+
+    Swing TPs built from actual W1 range of THIS chart.
+    """
+    if len(pivots) < 5:
+        return None
+    for i in range(len(pivots) - 5, -1, -1):
+        seg = pivots[i:i+5]
+        if len(seg) < 5:
+            continue
+        if [p[2] for p in seg] != ['L','H','L','H','L']:
+            continue
+        w0=seg[0][1]; w1h=seg[1][1]; w2l=seg[2][1]
+        w3h=seg[3][1]; w4l=seg[4][1]
+        w1=w1h-w0; w3=w3h-w2l
+        if w1<=0 or w3<=0: continue
+        if w2l<=w0: continue
+        if w3<w1:   continue
+        if w4l<=w1h: continue
+        if abs(current-w4l)/w4l > 0.05: continue
+
+        w2_ret = (w1h-w2l)/w1
+        w4_ret = (w3h-w4l)/w3
+        fib_lbl, fib_valid, fib_golden = fib_quality(w2_ret)
+        bb_lo = w3h - w3*0.786
+        bb_hi = w3h - w3*0.618
+
+        return {
+            'type': 'STANDARD_EW_W4',
+            'label': 'Standard EW - W4 Entry',
+            'w0':w0,'w1h':w1h,'w2l':w2l,'w3h':w3h,'w4l':w4l,'w5h':None,
+            'w1':w1,'w3':w3,
+            'w2_ret':round(w2_ret,3),'w4_ret':round(w4_ret,3),
+            'fib_lbl':fib_lbl,'fib_valid':fib_valid,'fib_golden':fib_golden,
+            'in_blue_box': bb_lo<=current<=bb_hi,
+            'alternation': abs(w2_ret-w4_ret)>0.15,
+            'entry_price':w4l,'struct_low':w4l,
+            'swing_sl':  round(w4l*(1-SWING_SL_BUFFER),6),
+            'swing_tp1': round(w3h,6),
+            'swing_tp2': round(w4l+w1*1.618,6),
+            'swing_tp3': round(w4l+w1*2.0,6),
+            'swing_tp4': round(w4l+w1*2.618,6),
+            'tp1_lbl':'W3 high retest',
+            'tp2_lbl':'1.618xW1 (W5 projection)',
+            'tp3_lbl':'2.0xW1','tp4_lbl':'2.618xW1',
+            'sl_lbl':'2% below W4 low',
+            'entry_wave':'W4',
+            '_ew_valid':True,
+            '_fib_check':fib_valid,
+            '_fib_lbl':f'W2 Fib 38-100% of W1: {fib_lbl}',
+            '_no_end_diag':True,'_no_trunc_w5':True,
+            'sit_apply':['wave_count','golden_ratio','alternation',
+                         'blue_box','stoch','smi','ewo','vol_dec','vol_exp'],
+            'grand_ctx': grand,
+        }
+    return None
+
+
+# ── Structure 2: Standard EW W2 ──────────────────────────────
+def detect_ew_w2(pivots, current, grand):
+    """
+    Completed impulse — price at W2 of new cycle.
+    Uses THIS chart's W1 range for all Fib calculations.
+    """
+    if len(pivots) < 6:
+        return None
+    for i in range(len(pivots) - 6, -1, -1):
+        seg = pivots[i:i+6]
+        if len(seg) < 6:
+            continue
+        if [p[2] for p in seg] != ['L','H','L','H','L','H']:
+            continue
+        w0=seg[0][1]; w1h=seg[1][1]; w2l=seg[2][1]
+        w3h=seg[3][1]; w4l=seg[4][1]; w5h=seg[5][1]
+        valid,_ = validate_ew_rules(w0,w1h,w2l,w3h,w4l,w5h)
+        if not valid: continue
+        if abs(current-w2l)/w2l > 0.05: continue
+        w1=w1h-w0
+        w2_ret=(w1h-w2l)/w1
+        fib_lbl,fib_valid,fib_golden=fib_quality(w2_ret)
+        return {
+            'type':'STANDARD_EW_W2',
+            'label':'Standard EW - W2 Entry',
+            'w0':w0,'w1h':w1h,'w2l':w2l,'w3h':w3h,'w4l':w4l,'w5h':w5h,
+            'w1':w1,'w3':w3h-w2l,
+            'w2_ret':round(w2_ret,3),'w4_ret':round((w3h-w4l)/(w3h-w2l),3),
+            'fib_lbl':fib_lbl,'fib_valid':fib_valid,'fib_golden':fib_golden,
+            'in_blue_box':False,'alternation':None,
+            'entry_price':w2l,'struct_low':w2l,
+            'swing_sl':  round(w2l*(1-SWING_SL_BUFFER),6),
+            'swing_tp1': round(w1h,6),
+            'swing_tp2': round(w2l+w1*1.618,6),
+            'swing_tp3': round(w2l+w1*2.618,6),
+            'swing_tp4': round(w5h,6),
+            'tp1_lbl':'W1 high retest',
+            'tp2_lbl':'1.618xW1 (W3 target)',
+            'tp3_lbl':'2.618xW1','tp4_lbl':'Prior W5 top',
+            'sl_lbl':'2% below W2 low',
+            'entry_wave':'W2',
+            '_ew_valid':True,
+            '_fib_check':fib_valid,
+            '_fib_lbl':f'W2 Fib 38-100% of W1: {fib_lbl}',
+            '_no_end_diag':True,'_no_trunc_w5':True,
+            'sit_apply':['wave_count','golden_ratio','wave_sym',
+                         'stoch','smi','ewo','vol_dec','vol_exp'],
+            'grand_ctx':grand,
+        }
+    return None
+
+
+# ── Structure 3: ABC Zigzag ───────────────────────────────────
+def detect_abc_zigzag(pivots, current, grand):
+    """
+    Completed impulse + ABC zigzag correction (5-3-5).
+    Wave B retraces 38-78% of A (zigzag signature).
+    C approaches A in price (C=A equality).
+
+    This is the BTC W2 of W3 pattern:
+    A=$126.2K->$74.5K, B=57% retrace, C approaching $74.5K.
+    Applied to ALL coins in their own wave cycle.
+
+    TPs built from actual A/B/C wave levels of THIS chart.
+    """
+    if len(pivots) < 8:
+        return None
+    impulse = _find_impulse(pivots)
+    if impulse is None:
+        return None
+    w5h  = impulse[5][1]
+    post = _post_impulse(pivots, impulse)
+    if len(post) < 2:
+        return None
+    # Wave A
+    aP = next((p for p in post if p[2]=='L'), None)
+    if aP is None:
+        return None
+    wa_bot=aP[1]; wa_rng=w5h-wa_bot
+    if wa_rng/max(w5h,0.0001)<0.08:
+        return None
+    # Wave B — zigzag: 38-78% retrace of A
+    postA=[p for p in post if p[0]>aP[0]]
+    bP=next((p for p in postA if p[2]=='H'),None)
+    if bP is None:
+        return None
+    wb_top=bP[1]; wb_ret=(wb_top-wa_bot)/wa_rng
+    if not (0.38<=wb_ret<=0.78):
+        return None
+    # Wave C
+    postB=[p for p in post if p[0]>bP[0]]
+    cP=next((p for p in postB if p[2]=='L'),None)
+    c_dev=(cP is None)
+    wc_bot=current if c_dev else cP[1]
+    wc_rng=wb_top-wc_bot
+    if wc_rng<=0:
+        return None
+    c_prog=wc_rng/wa_rng*100
+    c_eq_a=wb_top-wa_rng
+    c_conf=abs(wc_bot-c_eq_a)/max(abs(c_eq_a),0.0001)<0.05
+    if c_prog<70:
+        return None
+    return {
+        'type':'ABC_ZIGZAG',
+        'label':'ABC Zigzag Correction',
+        'w5h':w5h,'wa_bot':wa_bot,'wa_rng':wa_rng,
+        'wb_top':wb_top,'wb_ret_pct':round(wb_ret*100,1),
+        'wc_bot':wc_bot,'wc_rng':wc_rng,'c_dev':c_dev,
+        'c_eq_a_tgt':round(c_eq_a,6),
+        'c_progress':round(c_prog,1),'c_confirmed':c_conf,
+        'entry_price':wc_bot,'struct_low':wc_bot,
+        'swing_sl':  round(wc_bot*(1-SWING_SL_BUFFER),6),
+        'swing_tp1': round(wb_top,6),
+        'swing_tp2': round(w5h,6),
+        'swing_tp3': round(wc_bot+wa_rng*1.618,6),
+        'swing_tp4': round(wc_bot+wa_rng*2.618,6),
+        'tp1_lbl':'Wave B top',
+        'tp2_lbl':'W5 top (correction origin)',
+        'tp3_lbl':'1.618xWave A from C',
+        'tp4_lbl':'2.618xWave A from C',
+        'sl_lbl':'2% below Wave C low',
+        'entry_wave':'Wave C',
+        '_ew_valid':True,
+        '_fib_check':c_prog>=70,
+        '_fib_lbl':f'C=A Progress: {c_prog:.1f}% (>=70% required)',
+        '_no_end_diag':True,'_no_trunc_w5':True,
+        'sit_apply':['wave_c_bot','c_eq_a','abc_struct',
+                     'stoch','smi','ewo','vol_dec','vol_exp'],
+        'grand_ctx':grand,
     }
-    h+='<div class="g2">';
-    h+='<div class="si" style="border-color:#22c55e33;grid-column:1/-1"><div class="sl">ENTRY ZONE</div><div class="sv" style="color:var(--green)">'+fp(levels.entry*0.99)+' – '+fp(levels.entry*1.01)+'</div></div>';
-    var tps=[[levels.tp1,levels.tp1Pct,levels.tp1Lbl,'TP1'],[levels.tp2,levels.tp2Pct,levels.tp2Lbl,'TP2'],[levels.tp3,levels.tp3Pct,levels.tp3Lbl,'TP3'],[levels.tp4,levels.tp4Pct,levels.tp4Lbl,'TP4']];
-    tps.forEach(function(t){
-      h+='<div class="si" style="border-color:#f0b42933"><div class="sl">'+t[3]+' ('+t[1]+')</div>';
-      h+='<div class="sv" style="color:var(--gold)">'+fp(t[0])+'</div>';
-      if(mode==='swing') h+='<div style="font-size:8px;color:var(--muted);margin-top:2px">'+t[2]+'</div>';
-      h+='</div>';
-    });
-    h+='<div class="si" style="border-color:#ef444433;grid-column:1/-1"><div class="sl">STOP LOSS ('+levels.slPct+')</div>';
-    h+='<div class="sv" style="color:var(--red)">'+fp(levels.sl)+'</div>';
-    if(mode==='swing') h+='<div style="font-size:8px;color:var(--muted);margin-top:2px">'+levels.slLbl+'</div>';
-    h+='</div></div></div>';
-  }
 
-  // Structure detail card
-  if(structure){
-    h+='<div class="card"><div class="ct">STRUCTURE ANALYSIS — '+structMeta.icon+' '+structMeta.label+'</div>';
-    h+=buildStructureDetail(structure, structMeta);
-    h+='</div>';
-  }
 
-  // Wave count
-  h+='<div class="card"><div class="ct">WAVE COUNT</div>';
-  for(var i=0;i<waves.length;i++){
-    var w=waves[i],dt=w.date?w.date.toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';
-    h+='<div class="wr"><span style="color:'+w.color+';font-weight:900;min-width:60px">'+w.label+'</span>';
-    h+='<span style="color:var(--muted);font-size:9px">'+dt+'</span>';
-    h+='<span style="font-weight:700">'+fp(w.price)+'</span>';
-    h+='<span style="font-size:9px;color:'+w.color+'">'+(w.type==='peak'?'▲ TOP':w.type==='trough'?'▼ BOT':'● NOW')+'</span></div>';
-  }
-  h+=(!ewRes.valid?'<div style="font-size:10px;color:var(--red);margin-top:8px;padding:6px;background:#ef444411;border-radius:4px">⚠️ '+ewRes.issues.join(' · ')+'</div>':'<div style="font-size:10px;color:var(--green);margin-top:8px">✅ All EW Rules Valid</div>');
-  h+='<div style="margin-top:10px"><div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">WAVE VERIFICATION — '+verif.passed+'/'+verif.total+'</div>';
-  h+='<div class="sbar"><div class="sfill" style="width:'+verif.score.toFixed(0)+'%;background:'+(verif.score>=80?'var(--green)':verif.score>=60?'var(--gold)':'var(--red)')+'"></div></div>';
-  h+='<div style="margin-top:6px;font-size:10px;color:'+(verif.score>=80?'var(--green)':verif.score>=60?'var(--gold)':'var(--red)')+'">'+verif.confidence+' ('+verif.score.toFixed(0)+'%)</div>';
-  for(var vi=0;vi<verif.results.length;vi++){
-    var vr=verif.results[vi];
-    h+='<div style="display:flex;gap:8px;padding:4px 6px;border-radius:3px;margin-top:3px;background:'+(vr.ok?'#22c55e08':'#ef444408')+'"><span>'+(vr.ok?'✅':'❌')+'</span><span style="color:var(--gold);min-width:40px;font-size:9px">'+vr.wave+'</span><span style="color:var(--muted);font-size:9px">'+vr.check+': '+vr.detail+'</span></div>';
-  }
-  h+='</div></div>';
-
-  // Checklist
-  h+='<div class="card"><div class="ct">CHECKLIST — '+cl.reqPass+'/'+cl.reqTotal+' Required · '+cl.sitPass+'/'+cl.sitTotal+' Situational · '+cl.sitNA+' N/A</div>';
-  h+='<div class="sbar"><div class="sfill" style="width:'+(cl.reqPass/cl.reqTotal*100).toFixed(0)+'%;background:'+(allReqPass?'var(--green)':cl.reqPass>=7?'var(--gold)':'var(--red)')+'"></div></div>';
-  // Required
-  h+='<div style="font-size:9px;letter-spacing:2px;color:#ef4444;margin:8px 0 4px">REQUIRED — ALL MUST PASS</div>';
-  cl.req.forEach(function(ck){
-    h+='<div class="ci" style="background:'+(ck.ok?'#22c55e0d':'#ef44440d')+';border:1px solid '+(ck.ok?'#22c55e22':'#ef444433')+'">';
-    h+='<span style="font-size:13px;min-width:20px">'+(ck.ok?'✅':'❌')+'</span>';
-    h+='<span style="color:'+(ck.ok?'var(--text)':'var(--red)')+';flex:1;font-weight:'+(ck.ok?'normal':'700')+'">'+ck.l+'</span>';
-    h+='<span style="font-size:9px;color:var(--muted)">'+ck.cat+'</span></div>';
-  });
-  // Situational
-  h+='<div style="font-size:9px;letter-spacing:2px;color:var(--gold);margin:8px 0 4px">SITUATIONAL — ➖ = NOT APPLICABLE TO THIS CHART</div>';
-  cl.sit.forEach(function(sk){
-    var na=!sk.applicable;
-    var noteStr=sk.note?' <span style="font-size:8px;color:#475569">('+sk.note+')</span>':'';
-    h+='<div class="ci" style="background:'+(na?'#0d142188':sk.ok?'#22c55e0d':'#0d142188')+';border:1px solid '+(na?'#1e293b':sk.ok?'#22c55e22':'#1e293b')+'">';
-    h+='<span style="font-size:13px;min-width:20px">'+(na?'➖':sk.ok?'✅':'❌')+'</span>';
-    h+='<span style="color:'+(na?'#334155':sk.ok?'var(--text)':'var(--muted)')+';flex:1">'+sk.l+noteStr+'</span>';
-    h+='<span style="font-size:9px;color:var(--muted)">'+sk.cat+'</span></div>';
-  });
-  h+='<div style="margin-top:10px;padding:10px;border-radius:6px;text-align:center;font-size:12px;font-weight:700;background:'+(allReqPass?'#22c55e11':cl.reqPass>=7?'#f0b42911':'#ef444411')+';border:1px solid '+(allReqPass?'#22c55e33':cl.reqPass>=7?'#f0b42933':'#ef444433')+';color:'+(allReqPass?'var(--green)':cl.reqPass>=7?'var(--gold)':'var(--red)')+'">'+confTxt+'</div></div>';
-
-  // Professional Tools
-  h+='<div class="card"><div class="ct">PROFESSIONAL TOOLS</div>';
-  // Blue Box
-  if(blueBox){
-    h+='<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(blueBox.inAnyBox?'#3b82f611':'#0d142188')+';border:1px solid '+(blueBox.inAnyBox?'#3b82f6':'#1e293b')+'">';
-    h+='<div style="font-size:9px;letter-spacing:2px;color:#3b82f6;margin-bottom:4px">🔵 BLUE BOX ENTRY ZONE</div>';
-    if(blueBox.w2Box) h+='<div style="font-size:10px;color:'+(blueBox.w2Box.inBox?'#3b82f6':'var(--muted)')+'">W2 Zone: '+fp(blueBox.w2Box.bottom)+' – '+fp(blueBox.w2Box.top)+(blueBox.w2Box.inBox?' ✅':'')+' </div>';
-    if(blueBox.w4Box) h+='<div style="font-size:10px;color:'+(blueBox.w4Box.inBox?'#3b82f6':'var(--muted)')+'">W4 Zone: '+fp(blueBox.w4Box.bottom)+' – '+fp(blueBox.w4Box.top)+(blueBox.w4Box.inBox?' ✅':'')+' </div>';
-    h+='<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(blueBox.inAnyBox?'#3b82f6':'var(--muted)')+'">'+blueBox.label+'</div></div>';
-  }
-  // Wave Symmetry
-  h+='<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(symmetry.valid?'#22c55e08':'#ef444408')+';border:1px solid '+(symmetry.valid?'#22c55e22':'#ef444422')+'">';
-  h+='<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">📐 WAVE SYMMETRY</div>';
-  h+='<div class="sbar"><div class="sfill" style="width:'+symmetry.score.toFixed(0)+'%;background:'+(symmetry.score>=80?'var(--green)':symmetry.score>=60?'var(--gold)':'var(--red)')+'"></div></div>';
-  h+='<div style="margin-top:4px">';
-  symmetry.details.forEach(function(sd){ h+='<div style="font-size:9px;color:'+(sd.ok?'var(--green)':'var(--red)')+';margin-top:2px">'+(sd.ok?'✅':'❌')+' '+sd.label+': '+sd.detail+'</div>'; });
-  h+='</div><div style="font-size:10px;color:'+(symmetry.valid?'var(--green)':'var(--red)')+';margin-top:4px;font-weight:700">'+symmetry.note+' ('+symmetry.score.toFixed(0)+'%)</div></div>';
-  // SMI
-  h+='<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(smi<-40?'#22c55e08':smi>40?'#ef444408':'#0d142188')+';border:1px solid '+(smi<-40?'#22c55e22':smi>40?'#ef444422':'#1e293b')+'">';
-  h+='<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">📊 STOCHASTIC MOMENTUM INDEX</div>';
-  h+='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden"><div style="height:100%;width:'+Math.min(100,Math.max(0,(smi+100)/2)).toFixed(0)+'%;background:'+(smi<-40?'var(--green)':smi>40?'var(--red)':'var(--orange)')+'"></div></div>';
-  h+='<span style="font-size:11px;font-weight:900;color:'+(smi<-40?'var(--green)':smi>40?'var(--red)':'var(--orange)')+'">'+smi.toFixed(1)+(smi<-40?' ✅ Oversold':smi>40?' ⚠️ Overbought':' Neutral')+'</span></div></div>';
-  // C=A
-  h+='<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(caResult.inZone?'#22c55e08':'#0d142188')+';border:1px solid '+(caResult.inZone?'#22c55e22':'#1e293b')+'">';
-  h+='<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">🎯 C=A EQUALITY RULE</div>';
-  h+='<div style="font-size:11px;color:'+(caResult.inZone?'var(--green)':'var(--muted)')+'">'+caResult.label+'</div>';
-  if(caResult.target>0) h+='<div style="font-size:9px;color:var(--muted);margin-top:3px">C=A target: '+fp(caResult.target)+' | '+caResult.ratio.toFixed(0)+'% complete</div>';
-  h+='</div>';
-  h+='</div>';
-
-  // Grand structure reference
-  h+='<div class="card"><div class="ct">YOUR WAVE STRUCTURE</div><div style="font-size:10px;color:var(--muted);line-height:2"><div>Grand: W1($0.01→$69K) W2($69K→$15.4K) W3($15.4K→ongoing)</div><div>W3: W1ofW3($15.4K→$126.2K) W2ofW3(correcting)</div><div>W2ofW3: A($126.2K→$74.5K) B($74.5K→$95.8K) C(unfolding)</div><div style="margin-top:4px;color:var(--muted)">Re-entry: Miss W2? Wait for W4 (23–38% retrace of W3)</div></div></div>';
-
-  show(h);
-  setTimeout(function(){
-    var sl  = levels ? levels.sl  : 0;
-    var tps = levels ? [levels.tp1,levels.tp2,levels.tp3,levels.tp4] : [];
-    drawPrice(prices,highs,lows,waves,sl,tps);
-    drawRSI(prices);
-    drawMACD(macdRes.histLine);
-    drawStoch(prices);
-    drawSMI(smiFull);
-    drawVol(volData);
-  },50);
-}
-
-// ─────────────────────────────────────────────────────────────
-// STRUCTURE DETAIL CARD BUILDER
-// Shows relevant information per structure type
-// ─────────────────────────────────────────────────────────────
-function buildStructureDetail(s, meta){
-  var h='';
-  var t=s.type;
-
-  if(t==='STANDARD_EW_W4'||t==='STANDARD_EW_W2'){
-    h+='<div style="font-size:10px;line-height:2;color:var(--muted)">';
-    h+='<div>W0 origin : <span style="color:var(--text)">'+fp(s.w0)+'</span></div>';
-    h+='<div>W1 top    : <span style="color:var(--green)">'+fp(s.w1h)+'</span></div>';
-    h+='<div>W2 bottom : <span style="color:var(--red)">'+fp(s.w2l)+'</span> <span style="color:var(--gold);font-size:9px">'+s.fibLabel+'</span></div>';
-    h+='<div>W3 top    : <span style="color:var(--green)">'+fp(s.w3h)+'</span></div>';
-    if(t==='STANDARD_EW_W4'){
-      h+='<div>W4 bottom : <span style="color:var(--orange);font-weight:700">'+fp(s.w4l)+' ← ENTRY</span></div>';
-      h+='<div style="margin-top:4px;font-size:9px;color:var(--gold)">W4 retraces '+( s.w4ret*100).toFixed(1)+'% of W3 | W5 target: '+fp(s.swingTP2)+'</div>';
-    } else {
-      h+='<div>W4 bottom : <span style="color:var(--red)">'+fp(s.w4l)+'</span></div>';
-      h+='<div>W5 top    : <span style="color:var(--green)">'+fp(s.w5h)+'</span></div>';
-      h+='<div>W2 bottom : <span style="color:var(--orange);font-weight:700">'+fp(s.w2l)+' ← ENTRY (new cycle)</span></div>';
+# ── Structure 4: Expanded Flat ────────────────────────────────
+def detect_expanded_flat(pivots, current, grand):
+    """
+    B wave EXCEEDS the impulse top (W5).
+    B retraces >100% of A — expanded flat signature.
+    C = 1.236-1.618 x A, ends below Wave A bottom.
+    """
+    if len(pivots)<8: return None
+    impulse=_find_impulse(pivots)
+    if impulse is None: return None
+    w5h=impulse[5][1]
+    post=_post_impulse(pivots,impulse)
+    if len(post)<3: return None
+    aP=next((p for p in post if p[2]=='L'),None)
+    if aP is None: return None
+    wa_bot=aP[1]; wa_rng=w5h-wa_bot
+    if wa_rng<=0: return None
+    postA=[p for p in post if p[0]>aP[0]]
+    bP=next((p for p in postA if p[2]=='H'),None)
+    if bP is None: return None
+    wb_top=bP[1]
+    if wb_top<=w5h: return None   # B must exceed W5 top
+    wb_ret=(wb_top-wa_bot)/wa_rng
+    postB=[p for p in post if p[0]>bP[0]]
+    cP=next((p for p in postB if p[2]=='L'),None)
+    c_dev=(cP is None)
+    wc_bot=current if c_dev else cP[1]
+    wc_rng=wb_top-wc_bot
+    if wc_rng<=0: return None
+    c_vs_a=wc_rng/wa_rng
+    c_prog=min(c_vs_a/1.236*100,100)
+    if c_prog<70: return None
+    return {
+        'type':'EXPANDED_FLAT',
+        'label':'Expanded Flat Correction',
+        'w5h':w5h,'wa_bot':wa_bot,'wa_rng':wa_rng,
+        'wb_top':wb_top,'wb_ret_pct':round(wb_ret*100,1),
+        'wc_bot':wc_bot,'wc_rng':wc_rng,'c_dev':c_dev,
+        'c_vs_a_pct':round(c_vs_a*100,1),
+        'c_progress':round(c_prog,1),
+        'c_t1236':round(wb_top-wa_rng*1.236,6),
+        'c_t1618':round(wb_top-wa_rng*1.618,6),
+        'entry_price':wc_bot,'struct_low':wc_bot,
+        'swing_sl':  round(wc_bot*(1-SWING_SL_BUFFER),6),
+        'swing_tp1': round(wa_bot,6),
+        'swing_tp2': round(wb_top,6),
+        'swing_tp3': round(wc_bot+wa_rng*1.618,6),
+        'swing_tp4': round(wc_bot+wa_rng*2.0,6),
+        'tp1_lbl':'Wave A bottom',
+        'tp2_lbl':'Wave B top (new high)',
+        'tp3_lbl':'1.618xWave A from C',
+        'tp4_lbl':'2.0xWave A from C',
+        'sl_lbl':'2% below Wave C low',
+        'entry_wave':'Wave C',
+        '_ew_valid':True,
+        '_fib_check':c_prog>=70,
+        '_fib_lbl':f'C Progress >=70% (1.236xA): {c_prog:.1f}%',
+        '_no_end_diag':True,'_no_trunc_w5':True,
+        'sit_apply':['wave_c_bot','abc_struct',
+                     'stoch','smi','ewo','vol_dec','vol_exp'],
+        'grand_ctx':grand,
     }
-    h+='</div>';
-  }
 
-  else if(t==='ABC_ZIGZAG'){
-    h+='<div style="font-size:10px;line-height:2;color:var(--muted)">';
-    h+='<div>W5 top (origin)    : <span style="color:var(--green)">'+fp(s.w5h)+'</span></div>';
-    h+='<div>Wave A bottom      : <span style="color:var(--red)">'+fp(s.waBot)+'</span></div>';
-    h+='<div>Wave B top         : <span style="color:var(--green)">'+fp(s.wbTop)+'</span> <span style="color:var(--gold);font-size:9px">('+s.wbRetPct+'% retrace)</span></div>';
-    h+='<div>Wave C bottom      : <span style="color:var(--orange);font-weight:700">'+fp(s.wcBot)+(s.cDev?' (developing)':' ✅')+'</span> ← ENTRY</div>';
-    h+='<div style="margin-top:6px;padding:6px;border-radius:4px;background:'+(s.cConfirmed?'#22c55e11':'#f0b42911')+';border:1px solid '+(s.cConfirmed?'#22c55e33':'#f0b42933')+'">';
-    h+='<div style="font-size:9px;color:var(--muted)">C=A TARGET: <span style="color:'+(s.cConfirmed?'var(--green)':'var(--gold)')+'">'+fp(s.cTarget)+'</span></div>';
-    h+='<div style="font-size:10px;color:'+(s.cConfirmed?'var(--green)':'var(--gold)')+';font-weight:700">'+(s.cConfirmed?'✅ C=A CONFIRMED':'⏳ C Progress: '+s.cProgress+'% complete')+'</div>';
-    h+='</div></div>';
-  }
 
-  else if(t==='EXPANDED_FLAT'){
-    h+='<div style="font-size:10px;line-height:2;color:var(--muted)">';
-    h+='<div>W5 top (origin) : <span style="color:var(--green)">'+fp(s.w5h)+'</span></div>';
-    h+='<div>Wave A bottom   : <span style="color:var(--red)">'+fp(s.waBot)+'</span></div>';
-    h+='<div>Wave B top      : <span style="color:var(--green)">'+fp(s.wbTop)+'</span> <span style="color:var(--orange);font-size:9px">('+s.wbRetPct+'% — B exceeds W5 top ⚡)</span></div>';
-    h+='<div>Wave C bottom   : <span style="color:var(--orange);font-weight:700">'+fp(s.wcBot)+(s.cDev?' (developing)':' ✅')+'</span> ← ENTRY</div>';
-    h+='<div style="font-size:9px;color:var(--gold);margin-top:4px">C target: '+fp(s.cT1236)+' – '+fp(s.cT1618)+' | Progress: '+s.cProgress+'%</div>';
-    h+='</div>';
-  }
+# ── Structure 5: Running Correction ──────────────────────────
+def detect_running_correction(pivots, current, grand):
+    """
+    Market too strong to complete full retrace.
+    C stays ABOVE Wave A bottom — higher low.
+    Very bullish — next impulse usually powerful.
+    """
+    if len(pivots)<8: return None
+    impulse=_find_impulse(pivots)
+    if impulse is None: return None
+    w5h=impulse[5][1]
+    w1rng=impulse[1][1]-impulse[0][1]
+    post=_post_impulse(pivots,impulse)
+    if len(post)<3: return None
+    aP=next((p for p in post if p[2]=='L'),None)
+    if aP is None: return None
+    wa_bot=aP[1]; wa_rng=w5h-wa_bot
+    if wa_rng<=0: return None
+    postA=[p for p in post if p[0]>aP[0]]
+    bP=next((p for p in postA if p[2]=='H'),None)
+    if bP is None: return None
+    wb_top=bP[1]; wb_ret=(wb_top-wa_bot)/wa_rng
+    if not (0.38<=wb_ret<=0.78): return None
+    postB=[p for p in post if p[0]>bP[0]]
+    cP=next((p for p in postB if p[2]=='L'),None)
+    c_dev=(cP is None)
+    wc_bot=current if c_dev else cP[1]
+    if wc_bot<=wa_bot: return None  # C must be above A
+    wc_rng=wb_top-wc_bot
+    c_vs_a=wc_rng/wa_rng
+    if c_vs_a<0.38: return None
+    return {
+        'type':'RUNNING_CORRECTION',
+        'label':'Running Correction (Bullish)',
+        'w5h':w5h,'w1rng':w1rng,
+        'wa_bot':wa_bot,'wa_rng':wa_rng,
+        'wb_top':wb_top,'wb_ret_pct':round(wb_ret*100,1),
+        'wc_bot':wc_bot,'wc_rng':wc_rng,'c_dev':c_dev,
+        'c_vs_a_pct':round(c_vs_a*100,1),'higher_low':True,
+        'entry_price':wc_bot,'struct_low':wc_bot,
+        'swing_sl':  round(wc_bot*(1-SWING_SL_BUFFER),6),
+        'swing_tp1': round(wb_top,6),
+        'swing_tp2': round(w5h,6),
+        'swing_tp3': round(w5h+w1rng*1.0,6),
+        'swing_tp4': round(w5h+w1rng*1.618,6),
+        'tp1_lbl':'Wave B top',
+        'tp2_lbl':'W5 top (full recovery)',
+        'tp3_lbl':'W5 + 1.0xW1 (next impulse)',
+        'tp4_lbl':'W5 + 1.618xW1 (extended)',
+        'sl_lbl':'2% below Wave C (higher low)',
+        'entry_wave':'Wave C (Higher Low)',
+        '_ew_valid':True,'_fib_check':True,
+        '_fib_lbl':'C Above A Bottom (Higher Low)',
+        '_no_end_diag':True,'_no_trunc_w5':True,
+        'sit_apply':['wave_c_bot','abc_struct','wave_count',
+                     'stoch','smi','ewo','vol_dec','vol_exp'],
+        'grand_ctx':grand,
+    }
 
-  else if(t==='RUNNING_CORRECTION'){
-    h+='<div style="font-size:10px;line-height:2;color:var(--muted)">';
-    h+='<div>W5 top       : <span style="color:var(--green)">'+fp(s.w5h)+'</span></div>';
-    h+='<div>Wave A bottom: <span style="color:var(--red)">'+fp(s.waBot)+'</span></div>';
-    h+='<div>Wave B top   : <span style="color:var(--green)">'+fp(s.wbTop)+'</span> <span style="color:var(--gold);font-size:9px">('+s.wbRetPct+'% retrace)</span></div>';
-    h+='<div>Wave C bottom: <span style="color:var(--orange);font-weight:700">'+fp(s.wcBot)+(s.cDev?' (developing)':' ✅')+'</span> ← ENTRY</div>';
-    h+='<div style="margin-top:6px;padding:6px;border-radius:4px;background:#a855f711;border:1px solid #a855f733">';
-    h+='<div style="font-size:10px;color:#a855f7;font-weight:700">🚀 HIGHER LOW — C above A bottom</div>';
-    h+='<div style="font-size:9px;color:var(--muted);margin-top:2px">C retraced '+s.cVsAPct+'% of A — Market too strong to complete full retrace</div>';
-    h+='<div style="font-size:9px;color:#a855f7;margin-top:2px">Very bullish — next impulse expected to be powerful</div>';
-    h+='</div></div>';
-  }
 
-  else if(t==='WXYXZ'){
-    h+='<div style="font-size:10px;line-height:2;color:var(--muted)">';
-    h+='<div>W top  : <span style="color:var(--green)">'+fp(s.wTop)+'</span></div>';
-    h+='<div>W bot  : <span style="color:var(--red)">'+fp(s.wBot)+'</span></div>';
-    h+='<div>X1 top : <span style="color:var(--green)">'+fp(s.x1Top)+'</span> <span style="color:var(--gold);font-size:9px">(range: '+fp(s.x1Range)+')</span></div>';
-    h+='<div>Y bot  : <span style="color:var(--red)">'+fp(s.yBot)+'</span></div>';
-    h+='<div>X2 top : <span style="color:var(--green)">'+fp(s.x2Top)+'</span> <span style="color:var(--gold);font-size:9px">(range: '+fp(s.x2Range)+')</span></div>';
-    h+='<div>Z bot  : <span style="color:var(--orange);font-weight:700">'+fp(s.zBot)+(s.zDev?' (developing)':' ✅')+'</span> ← ENTRY</div>';
-    h+='<div style="margin-top:6px;padding:6px;border-radius:4px;background:#f0b42911;border:1px solid #f0b42933">';
-    h+='<div style="font-size:10px;color:var(--gold);font-weight:700">🔁 X1=X2 CONFIRMED</div>';
-    h+='<div style="font-size:9px;color:var(--muted);margin-top:2px">Price diff: '+s.priceDiffPct+'% | Time diff: '+s.timeDiffPct+'%</div>';
-    h+='<div style="font-size:10px;color:var(--gold);margin-top:2px">🔥 HIGHEST CONFIDENCE signal — X1=X2 Price+Time within 15%</div>';
-    h+='</div></div>';
-  }
+# ── Structure 6: W-X-Y-X-Z Triple Combination ────────────────
+def detect_wxyxz(pivots, current, grand):
+    """
+    Rarest, highest confidence.
+    X1 = X2 in BOTH price AND time within 15%.
+    Only fires when both confirmed.
+    """
+    if len(pivots)<10: return None
+    for i in range(len(pivots)-10,-1,-1):
+        seg=pivots[i:i+10]
+        if len(seg)<10: continue
+        if [p[2] for p in seg[:5]]!=['H','L','H','L','H']: continue
+        w_top=seg[0][1]; w_bot=seg[1][1]
+        x1_top=seg[2][1]; y_bot=seg[3][1]; x2_top=seg[4][1]
+        x1_rng=x1_top-w_bot; x2_rng=x2_top-y_bot
+        x1_t=seg[2][0]-seg[1][0]; x2_t=seg[4][0]-seg[3][0]
+        if x1_rng<=0 or x1_t<=0: continue
+        if w_bot>0 and x1_rng/w_bot<0.05: continue
+        if y_bot>0 and x2_rng/y_bot<0.05: continue
+        w_rng=w_top-w_bot; y_rng=x1_top-y_bot
+        if x1_rng>=w_rng*0.8 or x1_rng>=y_rng*0.8: continue
+        price_diff=abs(x1_rng-x2_rng)/x1_rng
+        time_diff=abs(x1_t-x2_t)/x1_t
+        if price_diff>0.15 or time_diff>0.15: continue
+        postX2=[p for p in pivots if p[0]>seg[4][0]]
+        zP=next((p for p in postX2 if p[2]=='L'),None)
+        z_dev=(zP is None); z_bot=current if z_dev else zP[1]
+        if not z_dev and z_bot>=y_bot: continue
+        move=w_top-w_bot
+        return {
+            'type':'WXYXZ',
+            'label':'W-X-Y-X-Z Triple Combination',
+            'w_top':w_top,'w_bot':w_bot,
+            'x1_top':x1_top,'y_bot':y_bot,'x2_top':x2_top,
+            'z_bot':z_bot,'z_dev':z_dev,
+            'x1_rng':round(x1_rng,6),'x2_rng':round(x2_rng,6),
+            'price_diff_pct':round(price_diff*100,1),
+            'time_diff_pct':round(time_diff*100,1),
+            'x1_eq_x2':True,
+            'entry_price':z_bot,'struct_low':z_bot,
+            'swing_sl':  round(z_bot*(1-SWING_SL_BUFFER),6),
+            'swing_tp1': round(x2_top,6),
+            'swing_tp2': round(w_top,6),
+            'swing_tp3': round(w_top+move*0.618,6),
+            'swing_tp4': round(w_top+move*1.0,6),
+            'tp1_lbl':'X2 top (connector high)',
+            'tp2_lbl':'W origin (full recovery)',
+            'tp3_lbl':'W top + 0.618xW range',
+            'tp4_lbl':'W top + 1.0xW range',
+            'sl_lbl':'2% below Z wave low',
+            'entry_wave':'Wave Z',
+            '_ew_valid':True,'_fib_check':True,
+            '_fib_lbl':f'X1=X2: price {price_diff*100:.1f}% | time {time_diff*100:.1f}%',
+            '_no_end_diag':True,'_no_trunc_w5':True,
+            'sit_apply':['wxyxz_x1x2','wave_count',
+                         'stoch','smi','ewo','vol_dec','vol_exp'],
+            'grand_ctx':grand,
+        }
+    return None
 
-  return h;
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 7 — SMART STRUCTURE RECOGNIZER
+#
+# Uses grand structure position to prioritize which patterns
+# to look for, then reads the actual chart to confirm.
+# ═════════════════════════════════════════════════════════════
+
+def recognize_structure(pivots, current, grand):
+    """
+    Smart detection — grand structure informs priority,
+    chart pattern confirms.
+
+    W2 position → prioritize ABC/flat/running corrections
+    W3/W4 position → prioritize EW W4/W2 entries
+    Unknown → try all detectors in standard priority order
+    """
+    cycle = grand['cycle_pos'] if grand else 'UNKNOWN'
+
+    # Always try WXYXZ first — rarest, most specific
+    s = detect_wxyxz(pivots, current, grand)
+    if s:
+        return s
+
+    if cycle in ('W2',):
+        # Coin is in grand W2 correction — look for ABC structures first
+        for detector in [
+            detect_expanded_flat,
+            detect_running_correction,
+            detect_abc_zigzag,
+            detect_ew_w4,
+            detect_ew_w2,
+        ]:
+            s = detector(pivots, current, grand)
+            if s:
+                return s
+
+    elif cycle in ('W3', 'W4', 'W3_OR_W5_TOP'):
+        # Coin in W3 or W4 — look for impulse entries first
+        for detector in [
+            detect_ew_w4,
+            detect_ew_w2,
+            detect_abc_zigzag,
+            detect_expanded_flat,
+            detect_running_correction,
+        ]:
+            s = detector(pivots, current, grand)
+            if s:
+                return s
+
+    else:
+        # Unknown position — standard priority order
+        for detector in [
+            detect_expanded_flat,
+            detect_running_correction,
+            detect_abc_zigzag,
+            detect_ew_w4,
+            detect_ew_w2,
+        ]:
+            s = detector(pivots, current, grand)
+            if s:
+                return s
+
+    return None
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 8 — SIGNAL LEVELS
+# Scalp: fixed always | Swing: from structure wave levels
+# ═════════════════════════════════════════════════════════════
+
+def build_levels(structure, current, mode):
+    e = current
+
+    if mode == 'scalp':
+        return {
+            'entry':round(e,6),
+            'sl':   round(e*(1-SCALP_SL_PCT),6),
+            'tp1':  round(e*(1+SCALP_TP1_PCT),6),
+            'tp2':  round(e*(1+SCALP_TP2_PCT),6),
+            'tp3':  round(e*(1+SCALP_TP3_PCT),6),
+            'tp4':  round(e*(1+SCALP_TP4_PCT),6),
+            'sl_pct':-5.0,'sl_lbl':'-5% fixed',
+            'tp1_pct':3.0,'tp1_lbl':'+3% fixed',
+            'tp2_pct':5.0,'tp2_lbl':'+5% fixed',
+            'tp3_pct':8.0,'tp3_lbl':'+8% fixed',
+            'tp4_pct':10.0,'tp4_lbl':'+10% fixed',
+            'mode':'scalp','tp_hit':0,
+        }
+
+    entry = structure['entry_price']
+    sl    = structure['swing_sl']
+    tp1   = structure['swing_tp1']
+    tp2   = structure['swing_tp2']
+    tp3   = structure['swing_tp3']
+    tp4   = structure['swing_tp4']
+    def pct(t): return round((t-entry)/entry*100,1) if entry>0 else 0
+    return {
+        'entry':round(entry,6),
+        'sl':   round(sl,6),
+        'tp1':  round(tp1,6),'tp2':round(tp2,6),
+        'tp3':  round(tp3,6),'tp4':round(tp4,6),
+        'sl_pct':pct(sl),'sl_lbl':structure['sl_lbl'],
+        'tp1_pct':pct(tp1),'tp1_lbl':structure['tp1_lbl'],
+        'tp2_pct':pct(tp2),'tp2_lbl':structure['tp2_lbl'],
+        'tp3_pct':pct(tp3),'tp3_lbl':structure['tp3_lbl'],
+        'tp4_pct':pct(tp4),'tp4_lbl':structure['tp4_lbl'],
+        'mode':'swing','tp_hit':0,
+    }
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 9 — SIGNAL CHECKLIST
+# Session doc Part 3 — exact implementation
+# ═════════════════════════════════════════════════════════════
+
+def run_checklist(structure, closes_1d, closes, highs, lows,
+                  rsi, macd_bull, stoch, smi, ewo_bull,
+                  vol_dec, vol_exp, current):
+    stype   = structure['type'] if structure else 'NONE'
+    applies = structure['sit_apply'] if structure else []
+
+    # ── 10 REQUIRED ──────────────────────────────────────────
+    req = {}
+
+    req['Daily Trend Bullish'] = daily_trend_bullish(closes_1d)
+
+    ma50 = calc_ma50(closes)
+    req['MA50 Confirmed'] = ma50 is not None and current > ma50
+
+    req['5-Wave / Core Structure Found'] = structure is not None
+
+    req['EW Rules Valid (3 Cardinal Rules)'] = (
+        structure.get('_ew_valid', False) if structure else False
+    )
+
+    if structure:
+        entry = structure['entry_price']
+        near  = abs(current-entry)/max(entry,0.0001) < 0.05
+        req[f"Entry Zone ({structure['entry_wave']})"] = near
+    else:
+        req['Entry Zone'] = False
+
+    if structure:
+        req[structure['_fib_lbl']] = structure['_fib_check']
+    else:
+        req['Fib Check'] = False
+
+    req[f'RSI Below 45 ({rsi:.0f})'] = rsi is not None and rsi < 45
+
+    req['MACD Bullish'] = bool(macd_bull)
+
+    req['No Ending Diagonal'] = (
+        structure.get('_no_end_diag', True) if structure else True
+    )
+
+    req['No Truncated W5'] = (
+        structure.get('_no_trunc_w5', True) if structure else True
+    )
+
+    req_pass  = sum(1 for v in req.values() if v)
+    req_total = len(req)
+
+    # ── 16 SITUATIONAL ───────────────────────────────────────
+    ALL_SIT = {
+        'wave_count': (
+            'Wave Count Verified >60%',
+            lambda: bool(structure and structure.get('w1',0)>0 and
+                         structure.get('w3',0)/structure.get('w1',1)>1.0)
+        ),
+        'golden_ratio': (
+            'Golden Ratio 38-78%',
+            lambda: bool(structure and
+                         0.618<=structure.get('w2_ret',0)<=0.786)
+        ),
+        'wave_c_bot': (
+            'Wave C Bottom',
+            lambda: bool(structure and
+                         float(structure.get('c_progress',0))>=80)
+        ),
+        'c_eq_a': (
+            'C=A Price + Time',
+            lambda: bool(structure and structure.get('c_confirmed',False))
+        ),
+        'wxyxz_x1x2': (
+            'WXYXZ X1=X2 (Price+Time within 15%)',
+            lambda: bool(structure and structure.get('x1_eq_x2',False))
+        ),
+        'abc_struct': (
+            'ABC Structure',
+            lambda: stype in ('ABC_ZIGZAG','EXPANDED_FLAT',
+                              'RUNNING_CORRECTION')
+        ),
+        'stoch': (
+            f'Stochastic Below 25 ({stoch:.0f})',
+            lambda: stoch is not None and stoch < 25
+        ),
+        'smi': (
+            f'SMI Below -40 ({smi:.0f})',
+            lambda: smi is not None and smi < -40
+        ),
+        'ewo': (
+            'EWO Signal',
+            lambda: ewo_bull is True
+        ),
+        'vol_dec': (
+            'Volume Declining (correction)',
+            lambda: bool(vol_dec)
+        ),
+        'vol_exp': (
+            'Volume Expanding (reversal)',
+            lambda: bool(vol_exp)
+        ),
+        'alternation': (
+            'Alternation W2 vs W4',
+            lambda: bool(structure and structure.get('alternation'))
+        ),
+        'candlestick': (
+            'Candlestick Pattern',
+            lambda: False
+        ),
+        'wave_sym': (
+            'Wave Symmetry (W3>W1)',
+            lambda: bool(structure and
+                         structure.get('w3',0)>structure.get('w1',0))
+        ),
+        'blue_box': (
+            'Blue Box Zone (0.618-0.786 Fib)',
+            lambda: bool(structure and
+                         structure.get('in_blue_box',False))
+        ),
+    }
+
+    sit_scored = {}
+    sit_na     = []
+
+    for key,(label,fn) in ALL_SIT.items():
+        if key in applies:
+            try:
+                sit_scored[label] = fn()
+            except Exception:
+                sit_scored[label] = False
+        else:
+            sit_na.append(label)
+
+    sit_pass  = sum(1 for v in sit_scored.values() if v)
+    sit_total = len(sit_scored)
+
+    return (req_pass, req_total, sit_pass, sit_total,
+            req, sit_scored, sit_na)
+
+
+def confidence_label(req_pass, req_total, sit_pass, sit_total):
+    rr = req_pass/req_total if req_total else 0
+    sr = sit_pass/sit_total if sit_total else 0.5
+    s  = rr*0.7 + sr*0.3
+    if s >= 0.90:   return 'HIGH - Full position'
+    elif s >= 0.75: return 'MEDIUM-HIGH - 75% position'
+    elif s >= 0.60: return 'MEDIUM - 50% position'
+    else:           return 'LOW - Skip'
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 10 — TELEGRAM MESSAGES
+# ═════════════════════════════════════════════════════════════
+
+STRUCT_ICONS = {
+    'STANDARD_EW_W4':'📊','STANDARD_EW_W2':'📊',
+    'ABC_ZIGZAG':'〽️','EXPANDED_FLAT':'📐',
+    'RUNNING_CORRECTION':'🚀','WXYXZ':'🔁',
 }
 
-// ─────────────────────────────────────────────────────────────
-// CHARTS (unchanged from original)
-// ─────────────────────────────────────────────────────────────
-function makeCanvas(id,H){
-  var c=document.getElementById(id);if(!c)return null;
-  var ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1,W=c.offsetWidth;
-  c.width=W*dpr;c.height=H*dpr;c.style.height=H+'px';ctx.scale(dpr,dpr);
-  ctx.fillStyle='#080c14';ctx.fillRect(0,0,W,H);
-  return{ctx:ctx,W:W,H:H};
-}
-function drawPrice(prices,highs,lows,waves,sl,tps){
-  var cv=makeCanvas('priceChart',280);if(!cv)return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H;
-  var P={t:16,r:55,b:24,l:58},cW=W-P.l-P.r,cH=H-P.t-P.b;
-  var mn=Math.min.apply(null,lows)*0.97,mx=Math.max.apply(null,highs)*1.03,rng=mx-mn||1;
-  function xS(i){return P.l+(i/(prices.length-1))*cW;}
-  function yS(p){return P.t+cH-((p-mn)/rng)*cH;}
-  for(var i=0;i<=5;i++){var y=P.t+(i/5)*cH,pr=mx-(i/5)*rng;ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();ctx.fillStyle='#475569';ctx.font='9px monospace';ctx.textAlign='right';ctx.fillText(fp(pr),P.l-3,y+3);}
-  var step=Math.max(1,Math.floor(priceData.length/5));
-  for(i=0;i<priceData.length;i+=step){var d=priceData[i].date;var lbl=mode==='scalp'?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});ctx.fillStyle='#334155';ctx.font='8px monospace';ctx.textAlign='center';ctx.fillText(lbl,xS(i),H-4);}
-  if(sl>0){var slY=yS(sl);if(slY>=P.t&&slY<=P.t+cH){ctx.strokeStyle='#ef444466';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(P.l,slY);ctx.lineTo(P.l+cW,slY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ef4444';ctx.font='bold 8px monospace';ctx.textAlign='left';ctx.fillText('SL',P.l+cW+2,slY+3);}}
-  var tpLabels=['TP1','TP2','TP3','TP4'];
-  for(var t=0;t<tps.length;t++){var tpY=yS(tps[t]);if(tpY<P.t||tpY>P.t+cH)continue;ctx.strokeStyle='#22c55e44';ctx.lineWidth=0.8;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(P.l,tpY);ctx.lineTo(P.l+cW,tpY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#22c55e';ctx.font='bold 8px monospace';ctx.textAlign='left';ctx.fillText(tpLabels[t],P.l+cW+2,tpY+3);}
-  var gr=ctx.createLinearGradient(0,P.t,0,P.t+cH);gr.addColorStop(0,'rgba(240,180,41,0.18)');gr.addColorStop(1,'rgba(240,180,41,0.01)');
-  ctx.beginPath();for(i=0;i<prices.length;i++){i===0?ctx.moveTo(xS(i),yS(prices[i])):ctx.lineTo(xS(i),yS(prices[i]));}
-  ctx.lineTo(xS(prices.length-1),P.t+cH);ctx.lineTo(xS(0),P.t+cH);ctx.closePath();ctx.fillStyle=gr;ctx.fill();
-  ctx.beginPath();ctx.strokeStyle='#f0b429';ctx.lineWidth=2;for(i=0;i<prices.length;i++){i===0?ctx.moveTo(xS(i),yS(prices[i])):ctx.lineTo(xS(i),yS(prices[i]));}ctx.stroke();
-  if(waves.length>1){ctx.beginPath();ctx.strokeStyle='rgba(240,180,41,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);for(i=0;i<waves.length;i++){i===0?ctx.moveTo(xS(waves[i].idx),yS(waves[i].price)):ctx.lineTo(xS(waves[i].idx),yS(waves[i].price));}ctx.stroke();ctx.setLineDash([]);}
-  for(i=0;i<waves.length;i++){var w=waves[i],x=xS(w.idx),y=yS(w.price),top=w.type==='peak',off=top?-22:22;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle=w.color;ctx.fill();ctx.fillStyle=w.color;ctx.fillRect(x-17,y+off-9,34,16);ctx.fillStyle='#000';ctx.font='bold 8px monospace';ctx.textAlign='center';ctx.fillText(w.label,x,y+off+3);ctx.fillStyle=w.color;ctx.font='7px monospace';ctx.fillText(fp(w.price),x,y+off+(top?-13:19));}
-}
-function drawRSI(prices){
-  var cv=makeCanvas('rsiChart',65);if(!cv)return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H,P={t:4,r:40,b:16,l:48},cW=W-P.l-P.r,cH=H-P.t-P.b;
-  var vals=[],i;for(i=14;i<prices.length;i++)vals.push(calcRSI(prices.slice(0,i+1)));
-  if(!vals.length)return;
-  ctx.fillStyle='#ef444408';ctx.fillRect(P.l,P.t,cW,cH*(1-70/100));
-  ctx.fillStyle='#22c55e08';ctx.fillRect(P.l,P.t+cH*(1-30/100),cW,cH*30/100);
-  [30,50,70].forEach(function(v){var y=P.t+cH*(1-v/100);ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText(v,P.l-3,y+3);});
-  function xS(i){return P.l+(i/(vals.length-1))*cW;}function yS(v){return P.t+cH*(1-v/100);}
-  ctx.beginPath();ctx.strokeStyle='#f97316';ctx.lineWidth=1.5;for(i=0;i<vals.length;i++){i===0?ctx.moveTo(xS(i),yS(vals[i])):ctx.lineTo(xS(i),yS(vals[i]));}ctx.stroke();
-  var last=vals[vals.length-1];ctx.fillStyle=last<30?'#22c55e':last>70?'#ef4444':'#f97316';ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('RSI '+last.toFixed(1),P.l+cW+2,P.t+cH/2+3);
-  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText('RSI',P.l-3,P.t+8);
-}
-function drawMACD(hist){
-  var cv=makeCanvas('macdChart',65);if(!cv||!hist||!hist.length)return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H,P={t:4,r:40,b:16,l:48},cW=W-P.l-P.r,cH=H-P.t-P.b;
-  var mx=Math.max.apply(null,hist.map(Math.abs))*1.1||1,yMid=P.t+cH/2,i;
-  function xS(i){return P.l+(i/(hist.length-1))*cW;}function yS(v){return yMid-(v/mx)*(cH/2);}
-  ctx.strokeStyle='#334155';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(P.l,yMid);ctx.lineTo(P.l+cW,yMid);ctx.stroke();
-  var bw=Math.max(1,cW/hist.length-0.5);
-  for(i=0;i<hist.length;i++){var x=xS(i),y=yS(hist[i]);ctx.fillStyle=hist[i]>=0?'#22c55e66':'#ef444466';ctx.fillRect(x-bw/2,Math.min(y,yMid),bw,Math.abs(y-yMid));}
-  var last=hist[hist.length-1]||0;ctx.fillStyle=last>=0?'#22c55e':'#ef4444';ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('MACD',P.l+cW+2,P.t+cH/2+3);
-  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText('MACD',P.l-3,P.t+8);
-}
-function drawStoch(prices){
-  var cv=makeCanvas('stochChart',65);if(!cv)return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H,P={t:4,r:40,b:16,l:48},cW=W-P.l-P.r,cH=H-P.t-P.b;
-  var vals=[],i,period=14;
-  for(i=period;i<=prices.length;i++){var sl=prices.slice(i-period,i);var high=Math.max.apply(null,sl),low=Math.min.apply(null,sl);vals.push(high===low?50:((prices[i-1]-low)/(high-low))*100);}
-  if(!vals.length)return;
-  ctx.fillStyle='#22c55e08';ctx.fillRect(P.l,P.t+cH*0.8,cW,cH*0.2);
-  ctx.fillStyle='#ef444408';ctx.fillRect(P.l,P.t,cW,cH*0.2);
-  [20,50,80].forEach(function(v){var y=P.t+cH*(1-v/100);ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText(v,P.l-3,y+3);});
-  function xS(i){return P.l+(i/(vals.length-1))*cW;}function yS(v){return P.t+cH*(1-v/100);}
-  ctx.beginPath();ctx.strokeStyle='#a855f7';ctx.lineWidth=1.5;for(i=0;i<vals.length;i++){i===0?ctx.moveTo(xS(i),yS(vals[i])):ctx.lineTo(xS(i),yS(vals[i]));}ctx.stroke();
-  var last=vals[vals.length-1];ctx.fillStyle=last<20?'#22c55e':last>80?'#ef4444':'#a855f7';ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('STOCH '+last.toFixed(0),P.l+cW+2,P.t+cH/2+3);
-  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText('STOCH',P.l-3,P.t+8);
-}
-function drawSMI(vals){
-  var cv=makeCanvas('smiChart',65);if(!cv||!vals||!vals.length)return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H,P={t:4,r:40,b:16,l:48},cW=W-P.l-P.r,cH=H-P.t-P.b,i;
-  function xS(i){return P.l+(i/(vals.length-1))*cW;}
-  function yS(v){return P.t+cH/2-(v/100)*(cH/2);}
-  ctx.fillStyle='#22c55e08';ctx.fillRect(P.l,P.t+cH*0.7,cW,cH*0.3);
-  ctx.fillStyle='#ef444408';ctx.fillRect(P.l,P.t,cW,cH*0.3);
-  [-40,0,40].forEach(function(v){var y=yS(v);ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText(v,P.l-3,y+3);});
-  ctx.beginPath();ctx.strokeStyle='#06b6d4';ctx.lineWidth=1.5;for(i=0;i<vals.length;i++){i===0?ctx.moveTo(xS(i),yS(vals[i])):ctx.lineTo(xS(i),yS(vals[i]));}ctx.stroke();
-  var last=vals[vals.length-1]||0;ctx.fillStyle=last<-40?'#22c55e':last>40?'#ef4444':'#06b6d4';ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('SMI '+last.toFixed(0),P.l+cW+2,P.t+cH/2+3);
-  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText('SMI',P.l-3,P.t+8);
-}
-function drawVol(vols){
-  var cv=makeCanvas('volChart',50);if(!cv||!vols.length)return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H,P={t:4,r:40,b:16,l:48},cW=W-P.l-P.r,cH=H-P.t-P.b;
-  var maxV=Math.max.apply(null,vols)||1,bw=Math.max(1,cW/vols.length-0.5),i;
-  for(i=0;i<vols.length;i++){var x=P.l+(i/(vols.length-1))*cW,hh=(vols[i]/maxV)*cH,up=i>0&&priceData[i]&&priceData[i-1]&&priceData[i].price>=priceData[i-1].price;ctx.fillStyle=up?'#22c55e44':'#ef444444';ctx.fillRect(x-bw/2,P.t+cH-hh,bw,hh);}
-  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText('VOL',P.l-3,P.t+8);
+CYCLE_LABELS = {
+    'W2':'Grand W2 Correction - Accumulation Zone',
+    'W3':'Inside Grand W3 - Most Powerful Wave',
+    'W4':'Grand W4 Pullback - Re-entry Zone',
+    'W3_OR_W5_TOP':'Near ATH - W3 or W5 Top Area',
+    'UNKNOWN':'Cycle Position Unknown',
 }
 
-// ─────────────────────────────────────────────────────────────
-// WIRE BUTTONS
-// ─────────────────────────────────────────────────────────────
-document.getElementById('gobtn').onclick   = function(){ doSearch(); };
-document.getElementById('btn-btc').onclick = function(){ loadSym('BTC'); };
-document.getElementById('btn-xrp').onclick = function(){ loadSym('XRP'); };
-document.getElementById('btn-eth').onclick = function(){ loadSym('ETH'); };
-document.getElementById('btn-sol').onclick = function(){ loadSym('SOL'); };
-document.getElementById('btn-bnb').onclick = function(){ loadSym('BNB'); };
-document.getElementById('btn-ada').onclick = function(){ loadSym('ADA'); };
-document.getElementById('m-swing').onclick = function(){ setMode('swing'); };
-document.getElementById('m-scalp').onclick = function(){ setMode('scalp'); };
-document.getElementById('tf-30').onclick   = function(){ setTF(30,'tf-30'); };
-document.getElementById('tf-90').onclick   = function(){ setTF(90,'tf-90'); };
-document.getElementById('tf-180').onclick  = function(){ setTF(180,'tf-180'); };
-document.getElementById('tf-365').onclick  = function(){ setTF(365,'tf-365'); };
-document.getElementById('tf-730').onclick  = function(){ setTF(730,'tf-730'); };
-document.getElementById('tf-max').onclick  = function(){ setTF(1000,'tf-max'); };
-document.getElementById('inp').onkeypress  = function(e){ if(e.key==='Enter') doSearch(); };
 
-loadSym('BTC');
-</script>
-</body>
-</html>
+def send_telegram(msg):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    try:
+        r = requests.post(url, json={
+            "chat_id":CHAT_ID,"text":msg,"parse_mode":"HTML"
+        }, timeout=10)
+        if not r.ok:
+            log.warning(f"Telegram: {r.text[:200]}")
+    except Exception as e:
+        log.warning(f"Telegram failed: {e}")
+
+
+def format_structure_lines(s):
+    t = s['type']
+    lines = []
+    g = s.get('grand_ctx')
+    if g:
+        lines.append(
+            f"Grand cycle: <b>{CYCLE_LABELS.get(g['cycle_pos'],'Unknown')}</b>"
+        )
+        lines.append(
+            f"ATL: ${g['atl']:,.4f} | ATH: ${g['ath']:,.4f} | "
+            f"W1 range: ${g['w1_range']:,.4f}"
+        )
+        lines.append(
+            f"W2 retrace from ATH: {g['retrace_ath']*100:.1f}%"
+        )
+        lines.append("")
+
+    if t in ('STANDARD_EW_W4','STANDARD_EW_W2'):
+        lines += [
+            f"W1 top    : ${s['w1h']:,.4f}",
+            f"W2 bottom : ${s['w2l']:,.4f}  [{s['fib_lbl']}]",
+            f"W3 top    : ${s['w3h']:,.4f}",
+        ]
+        if t == 'STANDARD_EW_W4':
+            lines.append(f"<b>W4 bottom : ${s['w4l']:,.4f}  <- ENTRY</b>")
+            lines.append(f"W4 retrace: {s['w4_ret']*100:.1f}% of W3")
+        else:
+            lines += [
+                f"W4 bottom : ${s['w4l']:,.4f}",
+                f"W5 top    : ${s['w5h']:,.4f}",
+                f"<b>W2 new cycle: ${s['w2l']:,.4f}  <- ENTRY</b>",
+            ]
+
+    elif t in ('ABC_ZIGZAG','EXPANDED_FLAT','RUNNING_CORRECTION'):
+        lines += [
+            f"W5 top (origin): ${s['w5h']:,.4f}",
+            f"Wave A bottom  : ${s['wa_bot']:,.4f}",
+            f"Wave B top     : ${s['wb_top']:,.4f}  ({s['wb_ret_pct']}% retrace)",
+            f"<b>Wave C bottom  : ${s['wc_bot']:,.4f}  "
+            f"{'(developing)' if s['c_dev'] else 'complete'}  <- ENTRY</b>",
+        ]
+        if t == 'ABC_ZIGZAG':
+            lines += [
+                f"C=A target : ${s['c_eq_a_tgt']:,.4f}  ({s['c_progress']}% done)",
+                f"{'C=A CONFIRMED' if s['c_confirmed'] else 'Approaching C=A'}",
+            ]
+        elif t == 'EXPANDED_FLAT':
+            lines += [
+                f"B retrace  : {s['wb_ret_pct']}% (B > W5 - expanded)",
+                f"C target   : ${s['c_t1236']:,.4f} - ${s['c_t1618']:,.4f}",
+            ]
+        elif t == 'RUNNING_CORRECTION':
+            lines += [
+                f"C vs A: {s['c_vs_a_pct']}% of A",
+                "Higher low - C above A bottom - very bullish",
+            ]
+
+    elif t == 'WXYXZ':
+        lines += [
+            f"W top  : ${s['w_top']:,.4f}",
+            f"X1 top : ${s['x1_top']:,.4f}  (range: ${s['x1_rng']:,.4f})",
+            f"Y bot  : ${s['y_bot']:,.4f}",
+            f"X2 top : ${s['x2_top']:,.4f}  (range: ${s['x2_rng']:,.4f})",
+            f"X1=X2  : price {s['price_diff_pct']}% | time {s['time_diff_pct']}%",
+            f"<b>Z bot  : ${s['z_bot']:,.4f}  <- ENTRY</b>",
+            "HIGHEST CONFIDENCE - X1=X2 Price+Time Confirmed",
+        ]
+
+    return "\n".join(lines)
+
+
+def format_signal_msg(symbol, structure, levels,
+                      req_pass, req_total, req_det,
+                      sit_pass, sit_total, sit_det, sit_na,
+                      confidence, mode):
+    icon    = STRUCT_ICONS.get(structure['type'],'📐')
+    mode_u  = mode.upper()
+    struct  = format_structure_lines(structure)
+    failed  = [k for k,v in req_det.items() if not v]
+    f_str   = ('\nFailed: '+'|'.join(failed)) if failed else ''
+
+    if mode == 'swing':
+        sl_l  = f"SL  : ${levels['sl']:,.4f} ({levels['sl_pct']}%) [{levels['sl_lbl']}]"
+        tp1_l = f"TP1 : ${levels['tp1']:,.4f} (+{levels['tp1_pct']}%) [{levels['tp1_lbl']}]"
+        tp2_l = f"TP2 : ${levels['tp2']:,.4f} (+{levels['tp2_pct']}%) [{levels['tp2_lbl']}]"
+        tp3_l = f"TP3 : ${levels['tp3']:,.4f} (+{levels['tp3_pct']}%) [{levels['tp3_lbl']}]"
+        tp4_l = f"TP4 : ${levels['tp4']:,.4f} (+{levels['tp4_pct']}%) [{levels['tp4_lbl']}]"
+    else:
+        sl_l  = f"SL  : ${levels['sl']:,.4f}  (-5% fixed)"
+        tp1_l = f"TP1 : ${levels['tp1']:,.4f}  (+3%)"
+        tp2_l = f"TP2 : ${levels['tp2']:,.4f}  (+5%)"
+        tp3_l = f"TP3 : ${levels['tp3']:,.4f}  (+8%)"
+        tp4_l = f"TP4 : ${levels['tp4']:,.4f}  (+10%)"
+
+    return (
+        f"SIGNAL - <b>{symbol}</b> ({mode_u})\n"
+        f"{icon} {structure['label']}\n\n"
+        f"STRUCTURE\n{struct}\n\n"
+        f"LEVELS ({mode_u})\n"
+        f"Entry: <b>${levels['entry']:,.4f}</b>\n"
+        f"{sl_l}\n{tp1_l}\n{tp2_l}\n{tp3_l}\n{tp4_l}\n\n"
+        f"Required: {req_pass}/{req_total}{f_str}\n"
+        f"Situational: {sit_pass}/{sit_total}\n"
+        f"N/A checks: {len(sit_na)}\n"
+        f"{confidence}\n"
+        f"#SIGNALSYM #{symbol} #{mode_u}"
+    )
+
+
+def format_watch_msg(symbol, structure, req_pass, req_total, mode, price):
+    icon = STRUCT_ICONS.get(structure['type'],'📐')
+    return (
+        f"WATCH - <b>{symbol}</b> ({mode.upper()})\n"
+        f"{icon} {structure['label']}\n"
+        f"Price: ${price:,.4f}\n"
+        f"Required: {req_pass}/{req_total}\n"
+        f"Monitoring every 5 min...\n"
+        f"#SIGNALSYM #{symbol} #WATCH"
+    )
+
+
+def format_tp_alert(symbol, tp_num, price, new_sl):
+    return (
+        f"TP{tp_num} HIT - <b>{symbol}</b>\n"
+        f"Price: ${price:,.4f}\n"
+        f"SL moved to: ${new_sl:,.4f}\n"
+        f"#SIGNALSYM #{symbol}"
+    )
+
+
+def format_sl_alert(symbol, price):
+    return (
+        f"STOP LOSS - <b>{symbol}</b>\n"
+        f"Exited: ${price:,.4f}\n"
+        f"Waiting for next signal\n"
+        f"#SIGNALSYM #{symbol}"
+    )
+
+
+def format_heartbeat(scans, active, watching):
+    now = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+    return (
+        f"SIGNALSYM Heartbeat\n"
+        f"{now}\n"
+        f"Scans: {scans}\n"
+        f"Active trades: {active}\n"
+        f"Watching: {watching}\n"
+        f"Running normally"
+    )
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 11 — PRICE MONITOR
+# ═════════════════════════════════════════════════════════════
+
+def check_active_trades():
+    global active_trades
+    to_close = []
+    for symbol, trade in list(active_trades.items()):
+        price = get_current_price(symbol)
+        if price is None:
+            continue
+        tp_hit = trade['tp_hit']
+        sl     = trade['sl']
+        tps    = [trade['tp1'],trade['tp2'],trade['tp3'],trade['tp4']]
+        if price <= sl:
+            send_telegram(format_sl_alert(symbol, price))
+            to_close.append(symbol)
+            log.info(f"SL hit: {symbol} @ {price}")
+            continue
+        for i,tp in enumerate(tps[tp_hit:],start=tp_hit+1):
+            if price >= tp:
+                new_sl = trade['entry'] if i==1 else tps[i-2]
+                trade['sl']     = new_sl
+                trade['tp_hit'] = i
+                send_telegram(format_tp_alert(symbol,i,price,new_sl))
+                log.info(f"TP{i} hit: {symbol} @ {price}")
+                if i==4: to_close.append(symbol)
+                break
+    for sym in to_close:
+        active_trades.pop(sym,None)
+
+
+def check_watch_coins():
+    global watch_coins
+    graduated = []
+    for symbol, info in list(watch_coins.items()):
+        result = analyze_coin(symbol, info['mode'])
+        if result and result['status'] == 'SIGNAL':
+            send_telegram(format_signal_msg(
+                symbol, result['structure'], result['levels'],
+                result['req_pass'], result['req_total'], result['req_det'],
+                result['sit_pass'], result['sit_total'], result['sit_det'],
+                result['sit_na'], result['confidence'], info['mode']
+            ))
+            active_trades[symbol] = result['levels']
+            last_signal_time[f"{symbol}_{info['mode']}"] = time.time()
+            graduated.append(symbol)
+    for sym in graduated:
+        watch_coins.pop(sym,None)
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 12 — COIN ANALYSIS
+# Full pipeline per coin — reads each chart independently
+# ═════════════════════════════════════════════════════════════
+
+def analyze_coin(symbol, mode='scalp'):
+    """
+    Full pipeline:
+    1. Fetch full weekly history -> coin's grand structure
+    2. Fetch 4H/90d (scalp) or 1D/730d (swing)
+    3. Fetch 1D/100d for daily trend (Golden Rule)
+    4. Calculate indicators
+    5. Find pivots (adaptive)
+    6. Recognize structure (grand-informed priority)
+    7. Run checklist (10 required + situational)
+    8. Build levels
+    9. Return SIGNAL / WATCH / None
+    """
+    # Step 1: Coin's own grand structure (full weekly history)
+    grand = get_grand_structure(symbol)
+    if grand is None:
+        return None
+
+    # Step 2: Chart data for analysis
+    interval = '1d' if mode == 'swing' else '4h'
+    limit    = SWING_DAYS if mode == 'swing' else SCALP_DAYS * 6
+    data     = get_klines(symbol, interval, limit)
+    if data is None:
+        return None
+    opens, highs, lows, closes, volumes, times = data
+    current = float(closes[-1])
+
+    # Step 3: Daily for Golden Rule trend check
+    daily = get_klines(symbol, '1d', 100)
+    if daily is None:
+        return None
+    closes_1d = daily[3]
+
+    # Step 4: Indicators
+    rsi              = calc_rsi(closes)
+    _, _, macd_bull  = calc_macd(closes)
+    stoch            = calc_stoch(closes, highs, lows)
+    smi              = calc_smi(closes, highs, lows)
+    _, ewo_bull      = calc_ewo(closes)
+    vol_dec, vol_exp = volume_analysis(volumes)
+
+    if rsi is None:
+        return None
+
+    # Step 5: Pivots
+    pivots = find_pivots(highs, lows, window=5)
+    if len(pivots) < 5:
+        return None
+
+    # Step 6: Structure recognition (grand-informed)
+    structure = recognize_structure(pivots, current, grand)
+    if structure is None:
+        return None
+
+    # Step 7: Checklist
+    (req_pass, req_total,
+     sit_pass, sit_total,
+     req_det, sit_det, sit_na) = run_checklist(
+        structure, closes_1d, closes, highs, lows,
+        rsi, macd_bull, stoch, smi, ewo_bull,
+        vol_dec, vol_exp, current
+    )
+
+    confidence = confidence_label(req_pass,req_total,sit_pass,sit_total)
+
+    # Step 8: Levels
+    levels = build_levels(structure, current, mode)
+
+    # Step 9: Signal / Watch / None
+    if req_pass == req_total:
+        status = 'SIGNAL'
+    elif req_pass >= 7:
+        status = 'WATCH'
+    else:
+        return None
+
+    return {
+        'status':    status,
+        'structure': structure,
+        'levels':    levels,
+        'req_pass':  req_pass,'req_total':req_total,'req_det':req_det,
+        'sit_pass':  sit_pass,'sit_total':sit_total,
+        'sit_det':   sit_det,'sit_na':sit_na,
+        'confidence':confidence,
+        'current':   current,
+        'grand':     grand,
+    }
+
+
+# ═════════════════════════════════════════════════════════════
+# SECTION 13 — MAIN SCAN LOOP
+# ═════════════════════════════════════════════════════════════
+
+def should_scan(symbol, mode):
+    key      = f"{symbol}_{mode}"
+    cooldown = SWING_COOLDOWN if mode=='swing' else SCALP_COOLDOWN
+    return (time.time()-last_signal_time.get(key,0)) > cooldown
+
+
+def run_scan():
+    global scan_count
+    scan_count += 1
+    log.info(f"Scan #{scan_count} | {len(HALAL_COINS)} coins")
+    t0 = time.time()
+
+    for symbol in HALAL_COINS:
+        for mode in ['scalp','swing']:
+            if not should_scan(symbol, mode):
+                continue
+            try:
+                result = analyze_coin(symbol, mode)
+                if result is None:
+                    continue
+
+                key    = f"{symbol}_{mode}"
+                status = result['status']
+
+                if status == 'SIGNAL':
+                    msg = format_signal_msg(
+                        symbol, result['structure'], result['levels'],
+                        result['req_pass'], result['req_total'], result['req_det'],
+                        result['sit_pass'], result['sit_total'], result['sit_det'],
+                        result['sit_na'], result['confidence'], mode
+                    )
+                    send_telegram(msg)
+                    active_trades[symbol] = result['levels']
+                    last_signal_time[key] = time.time()
+                    watch_coins.pop(symbol,None)
+                    log.info(
+                        f"SIGNAL {symbol} {mode} "
+                        f"{result['structure']['type']} "
+                        f"cycle:{result['grand']['cycle_pos']} "
+                        f"req:{result['req_pass']}/{result['req_total']}"
+                    )
+
+                elif status == 'WATCH':
+                    wk  = f"{symbol}_{mode}_watch"
+                    wc  = WATCH_COOLDOWN_SWING if mode=='swing' else WATCH_COOLDOWN_SCALP
+                    if (time.time()-last_signal_time.get(wk,0)) > wc:
+                        msg = format_watch_msg(
+                            symbol, result['structure'],
+                            result['req_pass'], result['req_total'],
+                            mode, result['current']
+                        )
+                        send_telegram(msg)
+                        watch_coins[symbol] = {'mode':mode,'ts':time.time()}
+                        last_signal_time[wk] = time.time()
+                        log.info(
+                            f"WATCH {symbol} {mode} "
+                            f"{result['structure']['type']} "
+                            f"cycle:{result['grand']['cycle_pos']}"
+                        )
+
+            except Exception as e:
+                log.error(f"Error {symbol} {mode}: {e}", exc_info=True)
+
+        time.sleep(COIN_SLEEP)
+
+    log.info(f"Scan #{scan_count} done in {time.time()-t0:.1f}s")
+
+    if scan_count % HEARTBEAT_SCANS == 0:
+        send_telegram(format_heartbeat(
+            scan_count, len(active_trades), len(watch_coins)
+        ))
+
+
+def main():
+    log.info("SIGNALSYM starting...")
+    send_telegram(
+        "SIGNALSYM Started\n\n"
+        "Every coin analyzed independently:\n"
+        "- Full weekly history -> coin's own grand structure\n"
+        "- ATL/ATH/W1 range calculated per coin\n"
+        "- Cycle position detected (W2/W3/W4)\n"
+        "- Chart pattern confirms structure\n"
+        "- Levels from actual wave levels\n\n"
+        "Structures: EW W2/W4 | ABC Zigzag | Expanded Flat | Running | WXYXZ\n"
+        "Scalp: TP3/5/8/10% | SL-5%\n"
+        "Swing: Structure wave levels | SL 2% below low\n"
+        "75 halal coins | Binance | Every 15 min"
+    )
+    last_price_check = 0
+    while True:
+        try:
+            now = time.time()
+            if (now-last_price_check) >= PRICE_MONITOR_INTERVAL:
+                if active_trades: check_active_trades()
+                if watch_coins:   check_watch_coins()
+                last_price_check = time.time()
+            run_scan()
+            time.sleep(SCAN_INTERVAL)
+        except KeyboardInterrupt:
+            log.info("Stopped.")
+            break
+        except Exception as e:
+            log.error(f"Main loop error: {e}", exc_info=True)
+            time.sleep(60)
+
+
+if __name__ == "__main__":
+    main()
