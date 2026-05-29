@@ -297,14 +297,25 @@ function validateEW(pv){
   return{valid:issues.length===0,issues:issues};
 }
 
-function detectEntry(pv){
+function detectEntry(pv, prices, rsiVal){
   if(pv.length<3)return'';
+  
+  // W2 bottom
   var w1r=Math.abs(pv[1].price-pv[0].price);
   if(w1r>0){var w2r=Math.abs(pv[2].price-pv[1].price)/w1r*100;if(w2r>=38&&w2r<=100)return'W2';}
+  
+  // W4 bottom
   if(pv.length>=5){
     var w3r=Math.abs(pv[3].price-pv[2].price);
     if(w3r>0){var w4r=Math.abs(pv[4].price-pv[3].price)/w3r*100;if(w4r>=23&&w4r<=38&&pv[4].price>pv[1].price)return'W4';}
   }
+  
+  // Wave C bottom — ABC correction complete
+  if(prices && pv.length>=4){
+    var wc = detectWaveCBottom(pv, prices, rsiVal||50);
+    if(wc.detected) return 'Wave C';
+  }
+  
   return'';
 }
 
@@ -531,7 +542,7 @@ function renderPage(stats){
       color:p.type==='peak'?'#22c55e':p.type==='trough'?'#ef4444':'#f0b429'};
   });
 
-  var entry=detectEntry(pivots);
+  var entry=detectEntry(pivots, prices, rsiVal);
   var alt=checkAlternation(pivots);
   var candle=detectCandlestick(prices);
   var verif=verifyWaves(waves,prices,volData);
@@ -576,7 +587,8 @@ function renderPage(stats){
     {l:'5-Wave Impulse Detected',ok:waves.length>=5,cat:'EW'},
     {l:'EW Rules Valid',ok:ewRes.valid,cat:'EW'},
     {l:'Wave Count Verified ('+verif.score.toFixed(0)+'%)',ok:verif.score>=60,cat:'EW'},
-    {l:'W2 or W4 Entry Zone',ok:entry!=='',cat:'EW'},
+    {l:'W2 or W4 Entry Zone',ok:entry!==''&&entry!=='Wave C',cat:'EW'},
+    {l:'Wave C Bottom Detected',ok:entry==='Wave C',cat:'EW'},
     {l:'Price -40%+ from ATH',ok:pctATH<-40,cat:'Price'},
     {l:'Price -60%+ from ATH',ok:pctATH<-60,cat:'Price'},
     {l:'Fib Level Hit',ok:pctATH<-38&&pctATH>-90,cat:'Fib'},
@@ -624,7 +636,11 @@ function renderPage(stats){
   h+='<div>From ATH: <span style="color:var(--red)">'+fpc(pctATH)+'</span></div>';
   h+='<div>RSI: <span style="color:'+(rsiVal<30?'var(--green)':rsiVal>70?'var(--red)':'var(--orange)')+'">'+rsiVal.toFixed(1)+'</span></div>';
   h+='<div>Stoch: <span style="color:'+(stoch<20?'var(--green)':stoch>80?'var(--red)':'var(--orange)')+'">'+stoch.toFixed(0)+'</span></div>';
-  if(entry)h+='<div>Zone: <span style="color:var(--green)">'+entry+' Bottom</span></div>';
+  if(entry){
+    var entryColor = entry==='Wave C' ? '#3b82f6' : 'var(--green)';
+    var entryIcon  = entry==='Wave C' ? '🔵' : '✅';
+    h+='<div>Zone: <span style="color:'+entryColor+'">'+entryIcon+' '+entry+' Bottom</span></div>';
+  }
   h+='</div></div></div>';
 
   h+='<div class="card" style="padding:10px"><div class="ct">PRICE + WAVES + SIGNAL LEVELS</div><canvas id="priceChart"></canvas></div>';
