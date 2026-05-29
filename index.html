@@ -657,6 +657,10 @@ function renderPage(stats){
   });
 
   var entry=detectEntry(pivots, prices, rsiVal);
+  var fibW1=calcFibRetrace(pivots);
+  var fibW4=calcW4Fib(pivots);
+  var caResult=calcCEqualsA(pivots, current);
+  var wxyxzResult=detectWXYXZ(pivots, current);
   var alt=checkAlternation(pivots);
   var candle=detectCandlestick(prices);
   var verif=verifyWaves(waves,prices,volData);
