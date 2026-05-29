@@ -736,41 +736,51 @@ function renderPage(stats){
     vol_exp=volData[volData.length-1]>r5/5;
   }
 
-  var checks=[
-    {l:'Daily Trend Bullish',ok:daily_bull,cat:'TF'},
-    {l:'MA50 Trend Confirmed',ok:current>ma50,cat:'TF'},
-    {l:'5-Wave Impulse Detected',ok:waves.length>=5,cat:'EW'},
-    {l:'EW Rules Valid',ok:ewRes.valid,cat:'EW'},
-    {l:'Wave Count Verified ('+verif.score.toFixed(0)+'%)',ok:verif.score>=60,cat:'EW'},
-    {l:'W2 or W4 Entry Zone',ok:entry!==''&&entry!=='Wave C',cat:'EW'},
-    {l:'Wave C Bottom Detected',ok:entry==='Wave C',cat:'EW'},
-    {l:'W2 Fib Retrace: '+fibW1.label,ok:fibW1.valid,cat:'Fib'},
-    {l:'Golden Ratio Zone (38-78%)',ok:fibW1.golden,cat:'Fib'},
-    {l:'W2 or W4 Fib Entry',ok:fibW1.valid||fibW4.valid,cat:'Fib'},
-    {l:'C=A Zone: '+caResult.label,ok:caResult.inZone,cat:'Fib'},
-    {l:'WXYXZ X1=X2: '+(wxyxzResult.detected?wxyxzResult.label:'Not detected'),ok:wxyxzResult.detected&&wxyxzResult.bothEqual,cat:'EW'},
-    {l:'RSI Below 45 ('+rsiVal.toFixed(0)+')',ok:rsiVal<45,cat:'Mom'},
-    {l:'Stochastic Below 25 ('+stoch.toFixed(0)+')',ok:stoch<25,cat:'Mom'},
-    {l:'MACD Bullish',ok:macdRes.cross||macdRes.turning,cat:'Mom'},
-    {l:'EWO Signal',ok:ewoVal!==0,cat:'Mom'},
-    {l:'Volume Declining',ok:vol_dec,cat:'Vol'},
-    {l:'Volume Expanding',ok:vol_exp,cat:'Vol'},
-    {l:'ABC Structure',ok:waves.length>=6,cat:'Struct'},
-    {l:'Alternation: '+alt.note,ok:alt.valid,cat:'Struct'},
-    {l:'Candlestick: '+candle.pattern,ok:candle.bullish,cat:'Struct'},
-    {l:'Wave Symmetry: '+symmetry.note,ok:symmetry.valid,cat:'Struct'},
-    {l:'Blue Box Entry: '+( blueBox?blueBox.label:'No box'),ok:blueBox?blueBox.inAnyBox:false,cat:'Struct'},
-    {l:'SMI Oversold ('+smi.toFixed(0)+')',ok:smi<-40,cat:'Mom'},
-    {l:'No Truncated W5',ok:!truncW5.detected,cat:'EW'},
+  // REQUIRED — must ALL pass for valid signal
+  var required=[
+    {l:'Daily Trend Bullish',ok:daily_bull,cat:'TF',req:true},
+    {l:'MA50 Confirmed',ok:current>ma50,cat:'TF',req:true},
+    {l:'5-Wave Impulse',ok:waves.length>=5,cat:'EW',req:true},
+    {l:'EW Rules Valid',ok:ewRes.valid,cat:'EW',req:true},
+    {l:'Entry Zone W2/W4',ok:entry!=='',cat:'EW',req:true},
+    {l:'W2 Fib Retrace: '+fibW1.label,ok:fibW1.valid,cat:'Fib',req:true},
+    {l:'RSI Below 45 ('+rsiVal.toFixed(0)+')',ok:rsiVal<45,cat:'Mom',req:true},
+    {l:'MACD Bullish',ok:macdRes.cross||macdRes.turning,cat:'Mom',req:true},
+    {l:'No Ending Diagonal',ok:!truncW5.detected,cat:'EW',req:true},
+    {l:'No Truncated W5',ok:!truncW5.detected,cat:'EW',req:true},
   ];
+  // SITUATIONAL — adds confidence based on current chart conditions
+  // Not required on every chart — depends on wave structure
+  var situational=[
+    {l:'Wave Count '+verif.score.toFixed(0)+'% verified',ok:verif.score>=60,cat:'EW',req:false},
+    {l:'Golden Ratio 38-78%',ok:fibW1.golden,cat:'Fib',req:false},
+    {l:'W4 Fib Entry',ok:fibW4.valid,cat:'Fib',req:false},
+    {l:'Wave C Bottom',ok:entry==='Wave C',cat:'EW',req:false,note:'ABC corrections only'},
+    {l:'C=A Zone: '+caResult.label,ok:caResult.inZone,cat:'Fib',req:false,note:'ABC corrections only'},
+    {l:'WXYXZ X1=X2',ok:wxyxzResult.detected&&wxyxzResult.bothEqual,cat:'EW',req:false,note:'Triple combo only'},
+    {l:'Stoch Below 25 ('+stoch.toFixed(0)+')',ok:stoch<25,cat:'Mom',req:false},
+    {l:'SMI Oversold ('+smi.toFixed(0)+')',ok:smi<-40,cat:'Mom',req:false},
+    {l:'EWO Signal',ok:ewoVal!==0,cat:'Mom',req:false},
+    {l:'Volume Declining',ok:vol_dec,cat:'Vol',req:false},
+    {l:'Volume Expanding',ok:vol_exp,cat:'Vol',req:false},
+    {l:'ABC Structure',ok:waves.length>=6,cat:'Struct',req:false,note:'Corrections only'},
+    {l:'Alternation: '+alt.note,ok:alt.valid,cat:'Struct',req:false},
+    {l:'Candlestick: '+candle.pattern,ok:candle.bullish,cat:'Struct',req:false},
+    {l:'Wave Symmetry',ok:symmetry.valid,cat:'Struct',req:false},
+    {l:'Blue Box Zone',ok:blueBox?blueBox.inAnyBox:false,cat:'Struct',req:false},
+  ];
+  var checks = required.concat(situational);
+  var allRequiredPass = required.every(function(c){return c.ok;});
 
   var score=0;
   for(i=0;i<checks.length;i++)if(checks[i].ok)score++;
+  var reqScore=0;
+  for(i=0;i<required.length;i++)if(required[i].ok)reqScore++;
 
   var statusTxt,statusCol;
-  if(score>=14){statusTxt=(mode==='scalp'?'⚡':'📈')+' STRONG SIGNAL — '+mode.toUpperCase();statusCol='#22c55e';}
-  else if(score>=11){statusTxt='🟡 WATCH — '+mode.toUpperCase()+' Setup Forming';statusCol='#f0b429';}
-  else if(score>=8){statusTxt='🟠 DEVELOPING — Not Ready Yet';statusCol='#f97316';}
+  if(allRequiredPass && score>=14){statusTxt=(mode==='scalp'?'⚡':'📈')+' STRONG SIGNAL — '+mode.toUpperCase();statusCol='#22c55e';}
+  else if(allRequiredPass && score>=11){statusTxt='🟡 WATCH — '+mode.toUpperCase()+' Setup Forming';statusCol='#f0b429';}
+  else if(reqScore>=7){statusTxt='🟠 DEVELOPING — '+reqScore+'/10 Required';statusCol='#f97316';}
   else{statusTxt='🔴 NO SIGNAL — Wait for Setup';statusCol='#ef4444';}
 
   var confTxt;
@@ -829,13 +839,25 @@ function renderPage(stats){
   for(var vi=0;vi<verif.results.length;vi++){var vr=verif.results[vi];h+='<div style="display:flex;gap:8px;padding:4px 6px;border-radius:3px;margin-top:3px;background:'+(vr.ok?'#22c55e08':'#ef444408')+'"><span>'+(vr.ok?'✅':'❌')+'</span><span style="color:var(--gold);min-width:40px;font-size:9px">'+vr.wave+'</span><span style="color:var(--muted);font-size:9px">'+vr.check+': '+vr.detail+'</span></div>';}
   h+='</div></div>';
 
-  h+='<div class="card"><div class="ct">18-POINT CHECKLIST — '+score+'/'+checks.length+'</div>';
+  h+='<div class="card"><div class="ct">CHECKLIST — '+reqScore+'/'+required.length+' Required · '+score+'/'+checks.length+' Total</div>';
   h+='<div class="sbar"><div class="sfill" style="width:'+(score/checks.length*100).toFixed(0)+'%;background:'+(score>=14?'var(--green)':score>=11?'var(--gold)':score>=8?'var(--orange)':'var(--red)')+'"></div></div>';
   h+='<div style="margin:6px 0 10px;font-size:10px;color:var(--muted)">';
   var cats=['TF','EW','Price','Fib','Mom','Vol','Struct'];
   for(var c=0;c<cats.length;c++){var cat=cats[c];var ok=0,tot=0;for(i=0;i<checks.length;i++){if(checks[i].cat===cat){tot++;if(checks[i].ok)ok++;}}h+='<span style="color:'+(ok===tot?'var(--green)':ok>0?'var(--gold)':'var(--red)')+';margin-right:8px">'+cat+' '+ok+'/'+tot+'</span>';}
   h+='</div>';
-  for(i=0;i<checks.length;i++){var ck=checks[i];h+='<div class="ci" style="background:'+(ck.ok?'#22c55e0d':'#ef44440d')+';border:1px solid '+(ck.ok?'#22c55e22':'#ef444422')+'"><span style="font-size:13px;min-width:20px">'+(ck.ok?'✅':'❌')+'</span><span style="color:'+(ck.ok?'var(--text)':'var(--muted)')+';flex:1">'+ck.l+'</span><span style="font-size:9px;color:var(--muted)">'+ck.cat+'</span></div>';}
+  // Required section
+  h+='<div style="font-size:9px;letter-spacing:2px;color:#ef4444;margin:6px 0 4px">REQUIRED — ALL MUST PASS</div>';
+  for(i=0;i<required.length;i++){
+    var ck=required[i];
+    h+='<div class="ci" style="background:'+(ck.ok?'#22c55e0d':'#ef44440d')+';border:1px solid '+(ck.ok?'#22c55e22':'#ef444433')+'"><span style="font-size:13px;min-width:20px">'+(ck.ok?'✅':'❌')+'</span><span style="color:'+(ck.ok?'var(--text)':'var(--red)')+';flex:1;font-weight:'+(ck.ok?'normal':'700')+'">'+ck.l+'</span><span style="font-size:9px;color:var(--muted)">'+ck.cat+'</span></div>';
+  }
+  // Situational section
+  h+='<div style="font-size:9px;letter-spacing:2px;color:var(--gold);margin:8px 0 4px">SITUATIONAL — DEPENDS ON CHART</div>';
+  for(i=0;i<situational.length;i++){
+    var sk=situational[i];
+    var noteStr=sk.note?' <span style="font-size:8px;color:#475569">('+sk.note+')</span>':'';
+    h+='<div class="ci" style="background:'+(sk.ok?'#22c55e0d':'#0d142188')+';border:1px solid '+(sk.ok?'#22c55e22':'#1e293b')+'"><span style="font-size:13px;min-width:20px">'+(sk.ok?'✅':'➖')+'</span><span style="color:'+(sk.ok?'var(--text)':'var(--muted)')+';flex:1">'+sk.l+noteStr+'</span><span style="font-size:9px;color:var(--muted)">'+sk.cat+'</span></div>';
+  }
   h+='<div style="margin-top:10px;padding:10px;border-radius:6px;text-align:center;font-size:12px;font-weight:700;background:'+(score>=14?'#22c55e11':score>=11?'#f0b42911':score>=8?'#f9731611':'#ef444411')+';border:1px solid '+(score>=14?'#22c55e33':score>=11?'#f0b42933':score>=8?'#f9731633':'#ef444433')+';color:'+(score>=14?'var(--green)':score>=11?'var(--gold)':score>=8?'var(--orange)':'var(--red)')+'">'+confTxt+'</div></div>';
 
   // Professional Tools Section
