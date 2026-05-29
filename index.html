@@ -527,6 +527,89 @@ function calcW4Fib(pivots) {
 }
 
 
+// ── C=A EQUALITY RULE — Price + Time (fatinhijjawi method) ────
+// 'متساوية' = equal in BOTH price length AND time duration
+function calcCEqualsA(pivots, current) {
+  if (pivots.length < 4) return { inZone: false, target: 0, label: 'Need more data' };
+  for (var i = pivots.length-4; i >= 0; i--) {
+    var p0=pivots[i], p1=pivots[i+1], p2=pivots[i+2], p3=pivots[i+3];
+    if (!(p0.type==='peak' && p1.type==='trough' && p2.type==='peak' && p3.type==='trough')) continue;
+    var waveA = Math.abs(p0.price - p1.price);
+    if (waveA === 0) continue;
+    var cStart = p2.price;
+    var caTarget = cStart - waveA;
+    var caExt = cStart - waveA * 1.618;
+    var caRatio = (cStart - current) / waveA * 100;
+    var proxCA = Math.abs(current - caTarget) / Math.abs(caTarget) * 100;
+    var proxExt = Math.abs(current - caExt) / Math.abs(caExt) * 100;
+    // TIME equality
+    var aTime = p1.idx - p0.idx;
+    var cTime = p3.idx - p2.idx;
+    var timeRatio = aTime > 0 ? cTime / aTime * 100 : 0;
+    var timeEqual = timeRatio >= 80 && timeRatio <= 120;
+    var timeNote = 'Time: ' + timeRatio.toFixed(0) + '% of Wave A';
+    if (proxCA <= 5 && timeEqual) return { inZone: true, target: caTarget, ratio: caRatio, label: 'C=A Price+Time ✓ (' + timeNote + ')' };
+    if (proxCA <= 5) return { inZone: true, target: caTarget, ratio: caRatio, label: 'C=A Price ✓ | ' + timeNote };
+    if (proxExt <= 5 && timeEqual) return { inZone: true, target: caExt, ratio: caRatio, label: 'C=1.618xA Price+Time ✓' };
+    if (proxExt <= 5) return { inZone: true, target: caExt, ratio: caRatio, label: 'C=1.618xA Price ✓ | ' + timeNote };
+    if (caRatio >= 80 && caRatio <= 120) return { inZone: true, target: caTarget, ratio: caRatio, label: 'Near C=A (' + caRatio.toFixed(0) + '% price | ' + timeNote + ')' };
+    return { inZone: false, target: caTarget, ratio: caRatio, label: 'C=A at ' + fp(caTarget) + ' | ' + timeNote };
+  }
+  return { inZone: false, target: 0, ratio: 0, label: 'No ABC found' };
+}
+
+function detectWXY(pivots) {
+  if (pivots.length < 7) return { detected: false, note: 'Need more data' };
+  try {
+    var wSize = Math.abs(pivots[2].price - pivots[0].price);
+    if (wSize === 0) return { detected: false, note: 'Invalid' };
+    var xRet = Math.abs(pivots[3].price - pivots[2].price) / wSize * 100;
+    if (xRet >= 38 && xRet <= 78) return { detected: true, note: 'W-X-Y مركب (X=' + xRet.toFixed(0) + '%)' };
+    return { detected: false, note: 'Simple ABC' };
+  } catch(e) { return { detected: false, note: 'Cannot determine' }; }
+}
+
+
+// ── W-X-Y-X-Z TRIPLE COMBINATION (fatinhijjawi X1=X2 rule) ────
+function detectWXYXZ(pivots, current) {
+  if (pivots.length < 6) return { detected: false, label: 'Need more pivots' };
+  var best = null;
+  for (var i = 0; i <= pivots.length - 6; i++) {
+    var p0=pivots[i], p1=pivots[i+1], p2=pivots[i+2],
+        p3=pivots[i+3], p4=pivots[i+4], p5=pivots[i+5];
+    if (!(p0.type==='peak' && p1.type==='trough' && p2.type==='peak' &&
+          p3.type==='trough' && p4.type==='peak' && p5.type==='trough')) continue;
+    // X1: p1->p2, X2: p3->p4
+    var x1p = Math.abs(p2.price - p1.price);
+    var x1t = p2.idx - p1.idx;
+    var x2p = Math.abs(p4.price - p3.price);
+    var x2t = p4.idx - p3.idx;
+    if (x1p === 0 || x1t === 0) continue;
+    var priceRatio = x2p / x1p * 100;
+    var timeRatio  = x2t / x1t * 100;
+    var priceEq = priceRatio >= 80 && priceRatio <= 120;
+    var timeEq  = timeRatio  >= 75 && timeRatio  <= 125;
+    var bothEq  = priceEq && timeEq;
+    var zPrice  = p5.price;
+    var nearZ   = Math.abs(current - zPrice) / zPrice * 100 <= 8;
+    if (priceEq || timeEq) {
+      best = {
+        detected:   true,
+        bothEqual:  bothEq,
+        priceRatio: priceRatio,
+        timeRatio:  timeRatio,
+        zPrice:     zPrice,
+        nearZ:      nearZ,
+        label: 'WXYXZ X1=X2 ' + (bothEq ? 'Price+Time ✓' : priceEq ? 'Price ✓' : 'Time ✓') +
+               ' (' + priceRatio.toFixed(0) + '% price | ' + timeRatio.toFixed(0) + '% time)'
+      };
+      if (bothEq && nearZ) break;
+    }
+  }
+  return best || { detected: false, label: 'No WXYXZ found' };
+}
+
+
 function verifyWaves(waves,prices,vols){
   if(!waves||waves.length<3)return{score:0,passed:0,total:0,results:[],confidence:'LOW'};
   var res=[],tot=0,pass=0;
@@ -623,6 +706,8 @@ function renderPage(stats){
     {l:'W2 Fib Retrace: '+fibW1.label,ok:fibW1.valid,cat:'Fib'},
     {l:'Golden Ratio Zone (38-78%)',ok:fibW1.golden,cat:'Fib'},
     {l:'W2 or W4 Fib Entry',ok:fibW1.valid||fibW4.valid,cat:'Fib'},
+    {l:'C=A Zone: '+caResult.label,ok:caResult.inZone,cat:'Fib'},
+    {l:'WXYXZ X1=X2: '+(wxyxzResult.detected?wxyxzResult.label:'Not detected'),ok:wxyxzResult.detected&&wxyxzResult.bothEqual,cat:'EW'},
     {l:'RSI Below 45 ('+rsiVal.toFixed(0)+')',ok:rsiVal<45,cat:'Mom'},
     {l:'Stochastic Below 25 ('+stoch.toFixed(0)+')',ok:stoch<25,cat:'Mom'},
     {l:'MACD Bullish',ok:macdRes.cross||macdRes.turning,cat:'Mom'},
@@ -642,7 +727,8 @@ function renderPage(stats){
   for(i=0;i<checks.length;i++)if(checks[i].ok)score++;
 
   var statusTxt,statusCol;
-  if(score>=14){statusTxt=(mode==='scalp'?'⚡':'📈')+' STRONG SIGNAL — '+mode.toUpperCase();statusCol='#22c55e';}
+  if(wxyxzResult.detected&&wxyxzResult.bothEqual&&score>=10){statusTxt='🔥🔥 WXYXZ HIGHEST CONFIDENCE — '+mode.toUpperCase();statusCol='#22c55e';}
+  else if(score>=14){statusTxt=(mode==='scalp'?'⚡':'📈')+' STRONG SIGNAL — '+mode.toUpperCase();statusCol='#22c55e';}
   else if(score>=11){statusTxt='🟡 WATCH — '+mode.toUpperCase()+' Setup Forming';statusCol='#f0b429';}
   else if(score>=8){statusTxt='🟠 DEVELOPING — Not Ready Yet';statusCol='#f97316';}
   else{statusTxt='🔴 NO SIGNAL — Wait for Setup';statusCol='#ef4444';}
@@ -759,6 +845,29 @@ function renderPage(stats){
     if (truncW5.strong) h += '<div style="font-size:10px;color:var(--red);margin-top:4px;font-weight:700">🚨 Do NOT enter — Major reversal expected</div>';
     h += '</div>';
   }
+
+  // WXYXZ display — highest confidence signal
+  if (wxyxzResult.detected) {
+    var wxColor = wxyxzResult.bothEqual ? 'var(--green)' : 'var(--gold)';
+    var wxBg = wxyxzResult.bothEqual ? '#22c55e11' : '#f0b42911';
+    var wxBorder = wxyxzResult.bothEqual ? '#22c55e33' : '#f0b42933';
+    h += '<div style="padding:10px;border-radius:6px;margin-bottom:8px;background:'+wxBg+';border:2px solid '+wxBorder+'">';
+    h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">🔥 W-X-Y-X-Z TRIPLE COMBINATION</div>';
+    h += '<div style="font-size:11px;font-weight:700;color:'+wxColor+'">'+wxyxzResult.label+'</div>';
+    h += '<div style="font-size:9px;color:var(--muted);margin-top:4px">X1 price: '+wxyxzResult.priceRatio.toFixed(0)+'% of X2 | Time: '+wxyxzResult.timeRatio.toFixed(0)+'%</div>';
+    h += '<div style="font-size:9px;color:'+wxColor+';margin-top:3px">Z wave target: '+fp(wxyxzResult.zPrice)+(wxyxzResult.nearZ?' — ✅ IN ZONE NOW':'')+' </div>';
+    if (wxyxzResult.bothEqual) h += '<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:4px">🔥🔥 HIGHEST CONFIDENCE — X1=X2 Price+Time Confirmed</div>';
+    h += '</div>';
+  }
+
+  // C=A Zone display
+  h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(caResult.inZone?'#22c55e08':'#0d142188')+';border:1px solid '+(caResult.inZone?'#22c55e22':'#1e293b')+'">';
+  h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">🎯 C=A EQUALITY RULE</div>';
+  h += '<div style="font-size:11px;color:'+(caResult.inZone?'var(--green)':'var(--muted)')+'">'+caResult.label+'</div>';
+  if (caResult.target > 0) h += '<div style="font-size:9px;color:var(--muted);margin-top:3px">C=A target: '+fp(caResult.target)+' | '+caResult.ratio.toFixed(0)+'% complete</div>';
+  h += '</div>';
+
+
 
   h += '</div>';
 
