@@ -321,6 +321,162 @@ function detectCandlestick(prices){
   return{pattern:'No pattern',bullish:false};
 }
 
+// ── WAVE SYMMETRY CHECK ───────────────────────────────────────
+// W1, W3, W5 should be proportional
+// W2, W4 corrective waves should alternate in depth/duration
+function checkWaveSymmetry(waves) {
+  if (waves.length < 5) return { valid: true, score: 0, note: 'Need 5 waves', details: [] };
+  var details = [], score = 0, total = 0;
+
+  // W1, W3, W5 sizes
+  var w1 = Math.abs(waves[1].price - waves[0].price);
+  var w3 = waves.length >= 4 ? Math.abs(waves[3].price - waves[2].price) : 0;
+  var w5 = waves.length >= 6 ? Math.abs(waves[5].price - waves[4].price) : 0;
+
+  // Rule 1: W3 should be largest impulse wave
+  if (w3 > 0 && w1 > 0) {
+    var w3_vs_w1 = w3 / w1;
+    var ok = w3_vs_w1 >= 1.0;
+    total++; if (ok) score++;
+    details.push({ label: 'W3 > W1', ok: ok, detail: (w3_vs_w1*100).toFixed(0) + '% of W1' });
+  }
+
+  // Rule 2: W5 should be smaller than W3 (unless extended)
+  if (w5 > 0 && w3 > 0) {
+    var w5_vs_w3 = w5 / w3;
+    var ok2 = w5_vs_w3 <= 1.2; // W5 can be up to 120% of W3
+    total++; if (ok2) score++;
+    details.push({ label: 'W5 ≤ W3', ok: ok2, detail: (w5_vs_w3*100).toFixed(0) + '% of W3' });
+  }
+
+  // Rule 3: W2 and W4 durations should differ (alternation)
+  var w2_size = waves.length >= 3 ? Math.abs(waves[2].price - waves[1].price) : 0;
+  var w4_size = waves.length >= 5 ? Math.abs(waves[4].price - waves[3].price) : 0;
+  if (w2_size > 0 && w4_size > 0) {
+    var ratio = Math.abs(w2_size - w4_size) / Math.max(w2_size, w4_size);
+    var ok3 = ratio >= 0.15; // At least 15% difference
+    total++; if (ok3) score++;
+    details.push({ label: 'W2≠W4 Size', ok: ok3, detail: (ratio*100).toFixed(0) + '% difference' });
+  }
+
+  // Rule 4: W1 and W5 should be similar size (if W3 is extended)
+  if (w5 > 0 && w1 > 0 && w3 > w1 * 1.5) {
+    var w5_vs_w1 = w5 / w1;
+    var ok4 = w5_vs_w1 >= 0.5 && w5_vs_w1 <= 2.0;
+    total++; if (ok4) score++;
+    details.push({ label: 'W1≈W5', ok: ok4, detail: (w5_vs_w1*100).toFixed(0) + '% of W1' });
+  }
+
+  var pct = total > 0 ? score / total * 100 : 50;
+  return { valid: pct >= 60, score: pct, details: details, note: pct >= 80 ? 'Symmetry excellent' : pct >= 60 ? 'Symmetry good' : 'Symmetry poor' };
+}
+
+// ── BLUE BOX ENTRY ZONE ───────────────────────────────────────
+// High-probability entry zone based on Fibonacci + EW structure
+// Blue box = overlap between 0.618 retrace of W1 and 1.0 retrace of W1
+function calcBlueBox(waves) {
+  if (waves.length < 3) return null;
+  var w0 = waves[0].price, w1 = waves[1].price, w2 = waves[2].price;
+  var w1_range = Math.abs(w1 - w0);
+  var direction = w1 > w0 ? 1 : -1;
+
+  // Blue box for W2: between 0.618 and 0.786 retracement of W1
+  var fib618 = direction > 0 ? w1 - w1_range * 0.618 : w1 + w1_range * 0.618;
+  var fib786 = direction > 0 ? w1 - w1_range * 0.786 : w1 + w1_range * 0.786;
+
+  var boxTop    = Math.max(fib618, fib786);
+  var boxBottom = Math.min(fib618, fib786);
+
+  var current = waves[waves.length-1].price;
+  var inBox = current >= boxBottom && current <= boxTop;
+
+  // Also check W4 blue box if we have enough waves
+  var w4Box = null;
+  if (waves.length >= 5) {
+    var w3_start = waves[2].price, w3_end = waves[3].price;
+    var w3_range = Math.abs(w3_end - w3_start);
+    var dir3 = w3_end > w3_start ? 1 : -1;
+    var f4_382 = dir3 > 0 ? w3_end - w3_range * 0.382 : w3_end + w3_range * 0.382;
+    var f4_618 = dir3 > 0 ? w3_end - w3_range * 0.618 : w3_end + w3_range * 0.618;
+    w4Box = {
+      top: Math.max(f4_382, f4_618),
+      bottom: Math.min(f4_382, f4_618),
+      inBox: current >= Math.min(f4_382, f4_618) && current <= Math.max(f4_382, f4_618)
+    };
+  }
+
+  return {
+    w2Box: { top: boxTop, bottom: boxBottom, inBox: inBox },
+    w4Box: w4Box,
+    inAnyBox: inBox || (w4Box && w4Box.inBox),
+    label: inBox ? 'In W2 Blue Box ✓' : (w4Box && w4Box.inBox) ? 'In W4 Blue Box ✓' : 'Outside Blue Box'
+  };
+}
+
+// ── STOCHASTIC MOMENTUM INDEX (SMI) ──────────────────────────
+// Better than regular Stochastic — smoother, less noise
+// SMI = (close - midpoint) / (half range) * 100
+function calcSMI(prices, period) {
+  period = period || 14;
+  if (prices.length < period) return 0;
+  var result = [];
+  for (var i = period - 1; i < prices.length; i++) {
+    var slice = prices.slice(i - period + 1, i + 1);
+    var high = Math.max.apply(null, slice);
+    var low  = Math.min.apply(null, slice);
+    var mid  = (high + low) / 2;
+    var range = high - low;
+    var smi  = range > 0 ? ((prices[i] - mid) / (range / 2)) * 100 : 0;
+    result.push(smi);
+  }
+  // Smooth with EMA
+  var smoothed = calcEMA(result, 3);
+  return smoothed.length > 0 ? smoothed[smoothed.length - 1] : 0;
+}
+
+function calcSMIFull(prices, period) {
+  period = period || 14;
+  var result = [];
+  for (var i = period - 1; i < prices.length; i++) {
+    var slice = prices.slice(i - period + 1, i + 1);
+    var high = Math.max.apply(null, slice);
+    var low  = Math.min.apply(null, slice);
+    var mid  = (high + low) / 2;
+    var range = high - low;
+    result.push(range > 0 ? ((prices[i] - mid) / (range / 2)) * 100 : 0);
+  }
+  return calcEMA(result, 3);
+}
+
+// ── TRUNCATED WAVE 5 DETECTION ────────────────────────────────
+// W5 fails to exceed W3 high — signals exhaustion and major reversal
+function detectTruncatedW5(waves, prices) {
+  if (waves.length < 6) return { detected: false, note: 'Need W5 data' };
+
+  var w3_high = waves[3].price;
+  var w5_high = waves[5] ? waves[5].price : waves[waves.length-1].price;
+  var current = prices[prices.length - 1];
+
+  // Truncated W5: W5 peak is lower than W3 peak (bullish structure)
+  var truncated = w5_high < w3_high && w5_high > waves[4].price;
+
+  // RSI divergence confirms truncation
+  var rsi_w3 = calcRSI(prices.slice(0, Math.min(waves[3].idx + 1, prices.length)));
+  var rsi_w5 = calcRSI(prices.slice(0, Math.min((waves[5] ? waves[5].idx : prices.length - 1) + 1, prices.length)));
+  var rsi_diverge = rsi_w5 < rsi_w3;
+
+  var strong = truncated && rsi_diverge;
+
+  return {
+    detected: truncated,
+    strong: strong,
+    note: strong ? '⚠️ Truncated W5 — Major reversal imminent' :
+          truncated ? 'Possible truncated W5' : 'No truncation',
+    w3_price: w3_high,
+    w5_price: w5_high
+  };
+}
+
 function verifyWaves(waves,prices,vols){
   if(!waves||waves.length<3)return{score:0,passed:0,total:0,results:[],confidence:'LOW'};
   var res=[],tot=0,pass=0;
@@ -368,6 +524,11 @@ function renderPage(stats){
   var alt=checkAlternation(pivots);
   var candle=detectCandlestick(prices);
   var verif=verifyWaves(waves,prices,volData);
+  var symmetry=checkWaveSymmetry(waves);
+  var blueBox=calcBlueBox(waves);
+  var smi=calcSMI(prices);
+  var smiFull=calcSMIFull(prices);
+  var truncW5=detectTruncatedW5(waves,prices);
 
   // Signal levels
   var slPct=mode==='scalp'?0.03:0.05;
@@ -417,6 +578,10 @@ function renderPage(stats){
     {l:'ABC Structure',ok:waves.length>=6,cat:'Struct'},
     {l:'Alternation: '+alt.note,ok:alt.valid,cat:'Struct'},
     {l:'Candlestick: '+candle.pattern,ok:candle.bullish,cat:'Struct'},
+    {l:'Wave Symmetry: '+symmetry.note,ok:symmetry.valid,cat:'Struct'},
+    {l:'Blue Box Entry: '+( blueBox?blueBox.label:'No box'),ok:blueBox?blueBox.inAnyBox:false,cat:'Struct'},
+    {l:'SMI Oversold ('+smi.toFixed(0)+')',ok:smi<-40,cat:'Mom'},
+    {l:'No Truncated W5',ok:!truncW5.detected,cat:'EW'},
   ];
 
   var score=0;
@@ -454,6 +619,7 @@ function renderPage(stats){
   h+='<div class="card" style="padding:8px"><canvas id="rsiChart"></canvas></div>';
   h+='<div class="card" style="padding:8px"><canvas id="macdChart"></canvas></div>';
   h+='<div class="card" style="padding:8px"><canvas id="stochChart"></canvas></div>';
+  h+='<div class="card" style="padding:8px"><canvas id="smiChart"></canvas></div>';
   h+='<div class="card" style="padding:8px"><canvas id="volChart"></canvas></div>';
 
   h+='<div class="sb" style="background:'+statusCol+'18;border:1px solid '+statusCol+'44;color:'+statusCol+'">'+statusTxt+'</div>';
@@ -487,6 +653,56 @@ function renderPage(stats){
   for(i=0;i<checks.length;i++){var ck=checks[i];h+='<div class="ci" style="background:'+(ck.ok?'#22c55e0d':'#ef44440d')+';border:1px solid '+(ck.ok?'#22c55e22':'#ef444422')+'"><span style="font-size:13px;min-width:20px">'+(ck.ok?'✅':'❌')+'</span><span style="color:'+(ck.ok?'var(--text)':'var(--muted)')+';flex:1">'+ck.l+'</span><span style="font-size:9px;color:var(--muted)">'+ck.cat+'</span></div>';}
   h+='<div style="margin-top:10px;padding:10px;border-radius:6px;text-align:center;font-size:12px;font-weight:700;background:'+(score>=14?'#22c55e11':score>=11?'#f0b42911':score>=8?'#f9731611':'#ef444411')+';border:1px solid '+(score>=14?'#22c55e33':score>=11?'#f0b42933':score>=8?'#f9731633':'#ef444433')+';color:'+(score>=14?'var(--green)':score>=11?'var(--gold)':score>=8?'var(--orange)':'var(--red)')+'">'+confTxt+'</div></div>';
 
+  // Professional Tools Section
+  h += '<div class="card"><div class="ct">PROFESSIONAL TOOLS</div>';
+
+  // Blue Box
+  if (blueBox) {
+    h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(blueBox.inAnyBox?'#3b82f611':'#0d142188')+';border:1px solid '+(blueBox.inAnyBox?'#3b82f6':'#1e293b')+'">';
+    h += '<div style="font-size:9px;letter-spacing:2px;color:#3b82f6;margin-bottom:4px">🔵 BLUE BOX ENTRY ZONE</div>';
+    if (blueBox.w2Box) {
+      h += '<div style="font-size:10px;color:'+(blueBox.w2Box.inBox?'#3b82f6':'var(--muted)')+'">W2 Zone: '+fp(blueBox.w2Box.bottom)+' – '+fp(blueBox.w2Box.top)+(blueBox.w2Box.inBox?' ✅ IN ZONE':'')+' </div>';
+    }
+    if (blueBox.w4Box) {
+      h += '<div style="font-size:10px;color:'+(blueBox.w4Box.inBox?'#3b82f6':'var(--muted)')+'">W4 Zone: '+fp(blueBox.w4Box.bottom)+' – '+fp(blueBox.w4Box.top)+(blueBox.w4Box.inBox?' ✅ IN ZONE':'')+' </div>';
+    }
+    h += '<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+(blueBox.inAnyBox?'#3b82f6':'var(--muted)')+'">'+blueBox.label+'</div>';
+    h += '</div>';
+  }
+
+  // Wave Symmetry
+  h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(symmetry.valid?'#22c55e08':'#ef444408')+';border:1px solid '+(symmetry.valid?'#22c55e22':'#ef444422')+'">';
+  h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">📐 WAVE SYMMETRY</div>';
+  h += '<div class="sbar"><div class="sfill" style="width:'+symmetry.score.toFixed(0)+'%;background:'+(symmetry.score>=80?'var(--green)':symmetry.score>=60?'var(--gold)':'var(--red)')+'"></div></div>';
+  h += '<div style="margin-top:4px">';
+  for (var si=0;si<symmetry.details.length;si++) {
+    var sd=symmetry.details[si];
+    h += '<div style="font-size:9px;color:'+(sd.ok?'var(--green)':'var(--red)')+';margin-top:2px">'+(sd.ok?'✅':'❌')+' '+sd.label+': '+sd.detail+'</div>';
+  }
+  h += '</div>';
+  h += '<div style="font-size:10px;color:'+(symmetry.valid?'var(--green)':'var(--red)')+';margin-top:4px;font-weight:700">'+symmetry.note+' ('+symmetry.score.toFixed(0)+'%)</div>';
+  h += '</div>';
+
+  // SMI
+  h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:'+(smi<-40?'#22c55e08':smi>40?'#ef444408':'#0d142188')+';border:1px solid '+(smi<-40?'#22c55e22':smi>40?'#ef444422':'#1e293b')+'">';
+  h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">📊 STOCHASTIC MOMENTUM INDEX</div>';
+  h += '<div style="display:flex;align-items:center;gap:8px">';
+  h += '<div style="flex:1;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden"><div style="height:100%;width:'+Math.min(100,Math.max(0,(smi+100)/2)).toFixed(0)+'%;background:'+(smi<-40?'var(--green)':smi>40?'var(--red)':'var(--orange)')+'"></div></div>';
+  h += '<span style="font-size:11px;font-weight:900;color:'+(smi<-40?'var(--green)':smi>40?'var(--red)':'var(--orange)')+'">'+smi.toFixed(1)+(smi<-40?' ✅ Oversold':smi>40?' ⚠️ Overbought':' Neutral')+'</span>';
+  h += '</div></div>';
+
+  // Truncated W5
+  if (truncW5.detected) {
+    h += '<div style="padding:8px;border-radius:5px;margin-bottom:8px;background:#f0b42911;border:1px solid #f0b42933">';
+    h += '<div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">⚠️ TRUNCATED WAVE 5</div>';
+    h += '<div style="font-size:11px;color:var(--gold)">'+truncW5.note+'</div>';
+    h += '<div style="font-size:9px;color:var(--muted);margin-top:3px">W3 peak: '+fp(truncW5.w3_price)+' · W5 peak: '+fp(truncW5.w5_price)+'</div>';
+    if (truncW5.strong) h += '<div style="font-size:10px;color:var(--red);margin-top:4px;font-weight:700">🚨 Do NOT enter — Major reversal expected</div>';
+    h += '</div>';
+  }
+
+  h += '</div>';
+
   h+='<div class="card"><div class="ct">YOUR WAVE STRUCTURE</div><div style="font-size:10px;color:var(--muted);line-height:2"><div>Grand: W1($0.01→$69K) W2($69K→$15.4K) W3($15.4K→ongoing)</div><div>W3: W1ofW3($15.4K→$126.2K) W2ofW3(correcting)</div><div>W2ofW3: A($126.2K→$74.5K) B($74.5K→$95.8K) C(unfolding)</div><div style="margin-top:4px;color:var(--sub)">Re-entry: Miss W2? Wait for W4 (23–38% retrace of W3)</div></div></div>';
 
   show(h);
@@ -496,6 +712,7 @@ function renderPage(stats){
     drawRSI(prices);
     drawMACD(macdRes.histLine);
     drawStoch(prices);
+    drawSMI(smiFull);
     drawVol(volData);
   },50);
 }
@@ -580,6 +797,35 @@ function drawStoch(prices){
   ctx.beginPath();ctx.strokeStyle='#a855f7';ctx.lineWidth=1.5;for(i=0;i<vals.length;i++){i===0?ctx.moveTo(xS(i),yS(vals[i])):ctx.lineTo(xS(i),yS(vals[i]));}ctx.stroke();
   var last=vals[vals.length-1];ctx.fillStyle=last<20?'#22c55e':last>80?'#ef4444':'#a855f7';ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('STOCH '+last.toFixed(0),P.l+cW+2,P.t+cH/2+3);
   ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText('STOCH',P.l-3,P.t+8);
+}
+
+function drawSMI(vals){
+  var cv=makeCanvas('smiChart',65);if(!cv||!vals||!vals.length)return;
+  var ctx=cv.ctx,W=cv.W,H=cv.H,P={t:4,r:40,b:16,l:48},cW=W-P.l-P.r,cH=H-P.t-P.b;
+  var mn=-100,mx=100,mid=P.t+cH/2,i;
+  function xS(i){return P.l+(i/(vals.length-1))*cW;}
+  function yS(v){return P.t+cH/2-(v/100)*(cH/2);}
+  // Zones
+  ctx.fillStyle='#22c55e08';ctx.fillRect(P.l,P.t+cH*0.7,cW,cH*0.3);
+  ctx.fillStyle='#ef444408';ctx.fillRect(P.l,P.t,cW,cH*0.3);
+  // Lines
+  [-40,0,40].forEach(function(v){
+    var y=yS(v);
+    ctx.strokeStyle='#1e293b';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+cW,y);ctx.stroke();
+    ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';
+    ctx.fillText(v,P.l-3,y+3);
+  });
+  // Line
+  ctx.beginPath();ctx.strokeStyle='#06b6d4';ctx.lineWidth=1.5;
+  for(i=0;i<vals.length;i++){i===0?ctx.moveTo(xS(i),yS(vals[i])):ctx.lineTo(xS(i),yS(vals[i]));}
+  ctx.stroke();
+  var last=vals[vals.length-1]||0;
+  ctx.fillStyle=last<-40?'#22c55e':last>40?'#ef4444':'#06b6d4';
+  ctx.font='bold 9px monospace';ctx.textAlign='left';
+  ctx.fillText('SMI '+last.toFixed(0),P.l+cW+2,P.t+cH/2+3);
+  ctx.fillStyle='#475569';ctx.font='8px monospace';ctx.textAlign='right';
+  ctx.fillText('SMI',P.l-3,P.t+8);
 }
 
 function drawVol(vols){
