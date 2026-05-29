@@ -77,6 +77,7 @@ var sym = 'BTCUSDT';
 var days = 365;
 var mode = 'swing';
 var priceData = [], volData = [], coinSym = 'BTC';
+var globalATH = 0;  // Always from MAX history
 
 // Binance symbol → display name
 var NAMES = {
@@ -112,14 +113,14 @@ function fp(p){
 function fpc(p){return(p>=0?'+':'')+p.toFixed(2)+'%';}
 
 function getInterval(){
-  if(mode==='scalp') return '1h';
+  if(mode==='scalp') return '4h';  // 4H better for wave counting
   if(days<=30) return '4h';
   if(days<=90) return '4h';
   return '1d';
 }
 
 function getLimit(){
-  if(mode==='scalp') return 336; // 14 days hourly
+  if(mode==='scalp') return 540; // 90 days of 4H candles
   if(days===730) return 730;
   if(days===365) return 365;
   if(days===180) return 180;
@@ -162,15 +163,22 @@ function fetchData(){
   var interval = getInterval();
   var limit = getLimit();
 
-  // Fetch klines (OHLCV) + 24hr stats
-  var urlK = BN + '/klines?symbol=' + sym + '&interval=' + interval + '&limit=' + limit;
-  var url24 = BN + '/ticker/24hr?symbol=' + sym;
+  // Fetch klines (OHLCV) + 24hr stats + MAX history for ATH
+  var urlK   = BN + '/klines?symbol=' + sym + '&interval=' + interval + '&limit=' + limit;
+  var url24  = BN + '/ticker/24hr?symbol=' + sym;
+  var urlMax = BN + '/klines?symbol=' + sym + '&interval=1w&limit=200'; // Weekly max for ATH
 
   Promise.all([
     fetch(urlK).then(function(r){return r.json();}),
-    fetch(url24).then(function(r){return r.json();})
+    fetch(url24).then(function(r){return r.json();}),
+    fetch(urlMax).then(function(r){return r.json();})
   ]).then(function(res){
-    var klines = res[0], stats = res[1];
+    var klines = res[0], stats = res[1], maxKlines = res[2];
+    // Calculate real ATH from full history
+    if(maxKlines && maxKlines.length && !maxKlines.code){
+      var maxHighs = maxKlines.map(function(k){return parseFloat(k[2]);});
+      globalATH = Math.max.apply(null, maxHighs);
+    }
     if(!klines || !klines.length || klines.code){
       show('<div class="err">❌ Symbol not found on Binance.<br>Try: BTC, ETH, XRP, SOL, BNB, ADA, AVAX, DOT...<br><br>Note: Use Binance symbols only (no USDT suffix needed)</div>');
       return;
@@ -499,7 +507,10 @@ function renderPage(stats){
   var highs=priceData.map(function(d){return d.high||d.price;});
   var lows=priceData.map(function(d){return d.low||d.price;});
   var current=prices[prices.length-1];
-  var ath=Math.max.apply(null,highs);
+  // ATH logic:
+  // SWING = real ATH from full history (globalATH)
+  // SCALP = ATH from the 14-day window (local highs)
+  var ath = (mode === 'swing' && globalATH > 0) ? globalATH : Math.max.apply(null,highs);
   var atl=Math.min.apply(null,lows);
   var chg=stats?parseFloat(stats.priceChangePercent||0):0;
   var name=NAMES[coinSym]||coinSym;
@@ -510,7 +521,7 @@ function renderPage(stats){
   var stoch=calcStoch(prices);
   var ewoVal=calcEWO(prices);
 
-  var sens=mode==='scalp'?0.03:days<=90?0.06:days<=365?0.10:0.15;
+  var sens=mode==='scalp'?0.05:days<=90?0.06:days<=365?0.10:0.15;  // 5% min for 4H scalp
   var pivots=findPivots(prices,sens);
   var ewRes=validateEW(pivots);
   var labels=['W1','W2','W3','W4','W5','Wave A','Wave B','Wave C'];
@@ -605,7 +616,8 @@ function renderPage(stats){
   else if(pctATH<-40)altTxt='Alternate: W4 correction within W3';
 
   var h='';
-  h+='<div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:12px">'+name+' ('+coinSym+'/USDT) · '+mode.toUpperCase()+'</div>';
+  var modeLabel = mode==='scalp' ? 'SCALP (4H · 90 Days)' : 'SWING (' + (days===1000?'MAX':days+'D') + ')';
+  h+='<div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:12px">'+name+' ('+coinSym+'/USDT) · '+modeLabel+'</div>';
   h+='<div class="card"><div class="ph"><div><div class="ct">LIVE PRICE — BINANCE</div><div class="pbig">'+fp(current)+'</div><div style="font-size:11px;color:'+(chg>=0?'var(--green)':'var(--red)')+';margin-top:2px">'+fpc(chg)+' 24H</div></div>';
   h+='<div style="text-align:right;font-size:10px;color:var(--muted);line-height:2">';
   h+='<div>ATH: <span style="color:var(--gold)">'+fp(ath)+'</span></div>';
