@@ -571,39 +571,51 @@ function detectWXY(pivots) {
 
 
 // ── W-X-Y-X-Z TRIPLE COMBINATION (fatinhijjawi X1=X2 rule) ────
+// STRICT: Both X waves must be equal in price AND time (within 15%)
+// Must have clear W-X-Y-X-Z structure with 6+ significant pivots
 function detectWXYXZ(pivots, current) {
   if (pivots.length < 6) return { detected: false, label: 'Need more pivots' };
   var best = null;
   for (var i = 0; i <= pivots.length - 6; i++) {
     var p0=pivots[i], p1=pivots[i+1], p2=pivots[i+2],
         p3=pivots[i+3], p4=pivots[i+4], p5=pivots[i+5];
+    // Strict: must be peak-trough-peak-trough-peak-trough
     if (!(p0.type==='peak' && p1.type==='trough' && p2.type==='peak' &&
           p3.type==='trough' && p4.type==='peak' && p5.type==='trough')) continue;
-    // X1: p1->p2, X2: p3->p4
+    // X1: p1->p2 (first bounce), X2: p3->p4 (second bounce)
     var x1p = Math.abs(p2.price - p1.price);
     var x1t = p2.idx - p1.idx;
     var x2p = Math.abs(p4.price - p3.price);
     var x2t = p4.idx - p3.idx;
     if (x1p === 0 || x1t === 0) continue;
+    // X bounces must be significant — at least 5% moves
+    var x1pct = x1p / p1.price * 100;
+    var x2pct = x2p / p3.price * 100;
+    if (x1pct < 5 || x2pct < 5) continue;
+    // W and Y waves must be larger than X waves (corrections > bounces)
+    var wSize = Math.abs(p1.price - p0.price);
+    var ySize = Math.abs(p3.price - p2.price);
+    if (x1p >= wSize * 0.8 || x2p >= ySize * 0.8) continue;
     var priceRatio = x2p / x1p * 100;
     var timeRatio  = x2t / x1t * 100;
-    var priceEq = priceRatio >= 80 && priceRatio <= 120;
-    var timeEq  = timeRatio  >= 75 && timeRatio  <= 125;
+    // STRICT equality: within 15% for price AND time
+    var priceEq = priceRatio >= 85 && priceRatio <= 115;
+    var timeEq  = timeRatio  >= 85 && timeRatio  <= 115;
     var bothEq  = priceEq && timeEq;
-    var zPrice  = p5.price;
-    var nearZ   = Math.abs(current - zPrice) / zPrice * 100 <= 8;
-    if (priceEq || timeEq) {
+    // Only report if BOTH are equal — strict requirement
+    if (bothEq) {
+      var zPrice = p5.price;
+      var nearZ  = Math.abs(current - zPrice) / zPrice * 100 <= 8;
       best = {
         detected:   true,
-        bothEqual:  bothEq,
+        bothEqual:  true,
         priceRatio: priceRatio,
         timeRatio:  timeRatio,
         zPrice:     zPrice,
         nearZ:      nearZ,
-        label: 'WXYXZ X1=X2 ' + (bothEq ? 'Price+Time ✓' : priceEq ? 'Price ✓' : 'Time ✓') +
-               ' (' + priceRatio.toFixed(0) + '% price | ' + timeRatio.toFixed(0) + '% time)'
+        label: 'WXYXZ X1=X2 Price+Time ✓ (' + priceRatio.toFixed(0) + '% | ' + timeRatio.toFixed(0) + '%)'
       };
-      if (bothEq && nearZ) break;
+      if (nearZ) break;
     }
   }
   return best || { detected: false, label: 'No WXYXZ found' };
@@ -756,8 +768,7 @@ function renderPage(stats){
   for(i=0;i<checks.length;i++)if(checks[i].ok)score++;
 
   var statusTxt,statusCol;
-  if(wxyxzResult.detected&&wxyxzResult.bothEqual&&score>=10){statusTxt='🔥🔥 WXYXZ HIGHEST CONFIDENCE — '+mode.toUpperCase();statusCol='#22c55e';}
-  else if(score>=14){statusTxt=(mode==='scalp'?'⚡':'📈')+' STRONG SIGNAL — '+mode.toUpperCase();statusCol='#22c55e';}
+  if(score>=14){statusTxt=(mode==='scalp'?'⚡':'📈')+' STRONG SIGNAL — '+mode.toUpperCase();statusCol='#22c55e';}
   else if(score>=11){statusTxt='🟡 WATCH — '+mode.toUpperCase()+' Setup Forming';statusCol='#f0b429';}
   else if(score>=8){statusTxt='🟠 DEVELOPING — Not Ready Yet';statusCol='#f97316';}
   else{statusTxt='🔴 NO SIGNAL — Wait for Setup';statusCol='#ef4444';}
