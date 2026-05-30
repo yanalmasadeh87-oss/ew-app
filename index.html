@@ -50,28 +50,28 @@ canvas{width:100%!important;display:block;border-radius:4px}
 <h1>EW STRATEGY V3</h1>
 <div class="sub">YOUR WAVE STRUCTURE · BINANCE DATA · MULTI-TIMEFRAME</div>
 <div class="row">
-  <input type="text" id="inp" placeholder="Enter symbol (BTC, XRP, ETH, SOL...)">
-  <button class="gbtn" id="gobtn">GO</button>
+  <input type="text" id="inp" placeholder="Enter symbol (BTC, XRP, ETH, SOL...)" onkeypress="if(event.key==='Enter')doSearch()">
+  <button class="gbtn" onclick="doSearch()">GO</button>
 </div>
 <div class="coins">
-  <button class="cbtn" id="btn-btc">BTC</button>
-  <button class="cbtn" id="btn-xrp">XRP</button>
-  <button class="cbtn" id="btn-eth">ETH</button>
-  <button class="cbtn" id="btn-sol">SOL</button>
-  <button class="cbtn" id="btn-bnb">BNB</button>
-  <button class="cbtn" id="btn-ada">ADA</button>
+  <button class="cbtn" onclick="loadSym('BTC')">BTC</button>
+  <button class="cbtn" onclick="loadSym('XRP')">XRP</button>
+  <button class="cbtn" onclick="loadSym('ETH')">ETH</button>
+  <button class="cbtn" onclick="loadSym('SOL')">SOL</button>
+  <button class="cbtn" onclick="loadSym('BNB')">BNB</button>
+  <button class="cbtn" onclick="loadSym('ADA')">ADA</button>
 </div>
 <div class="modes">
-  <button class="mbtn on" id="m-swing">SWING</button>
-  <button class="mbtn" id="m-scalp">SCALP</button>
+  <button class="mbtn on" id="m-swing" onclick="setMode('swing')">SWING</button>
+  <button class="mbtn" id="m-scalp" onclick="setMode('scalp')">SCALP</button>
 </div>
-<div class="tfs" id="tfs">
-  <button class="tbtn" id="tf-30">1M</button>
-  <button class="tbtn" id="tf-90">3M</button>
-  <button class="tbtn" id="tf-180">6M</button>
-  <button class="tbtn" id="tf-365">1Y</button>
-  <button class="tbtn" id="tf-730">2Y</button>
-  <button class="tbtn on" id="tf-max">MAX</button>
+<div class="tfs">
+  <button class="tbtn" id="tf-30"  onclick="days=30;setTF(30,'tf-30')">1M</button>
+  <button class="tbtn" id="tf-90"  onclick="days=90;setTF(90,'tf-90')">3M</button>
+  <button class="tbtn" id="tf-180" onclick="days=180;setTF(180,'tf-180')">6M</button>
+  <button class="tbtn" id="tf-365" onclick="days=365;setTF(365,'tf-365')">1Y</button>
+  <button class="tbtn" id="tf-730" onclick="days=730;setTF(730,'tf-730')">2Y</button>
+  <button class="tbtn on" id="tf-max" onclick="days=1000;setTF(1000,'tf-max')">MAX</button>
 </div>
 <div id="main"><div class="info">Tap a coin or type a symbol (BTC, XRP...) and tap GO<br>Powered by Binance — Free · Unlimited · No Key Needed</div></div>
 <div class="disc">FOR EDUCATIONAL PURPOSES ONLY · NOT FINANCIAL ADVICE<br>SPOT TRADING ONLY · HALAL COINS · ALWAYS MANAGE YOUR RISK</div>
@@ -129,24 +129,8 @@ function getLimit(){
 function loadSym(s){sym=s.toUpperCase()+'USDT';coinSym=s.toUpperCase();document.getElementById('inp').value=s.toUpperCase();fetchData();}
 
 // ── WIRE ALL BUTTONS ──────────────────────────────────────────
-document.getElementById('gobtn').onclick=function(){doSearch();};
-// Coin buttons — flash gold on tap for instant feedback
-['btc','xrp','eth','sol','bnb','ada'].forEach(function(id){
-  document.getElementById('btn-'+id).onclick=function(){
-    document.querySelectorAll('.cbtn').forEach(function(b){b.style.color='';b.style.borderColor='';});
-    this.style.color='var(--gold)';this.style.borderColor='var(--gold)';
-    loadSym(id.toUpperCase());
-  };
-});
-document.getElementById('m-swing').onclick=function(){setMode('swing');};
-document.getElementById('m-scalp').onclick=function(){setMode('scalp');};
-document.getElementById('tf-30').onclick=function(){days=30;setTF(30,'tf-30');};
-document.getElementById('tf-90').onclick=function(){days=90;setTF(90,'tf-90');};
-document.getElementById('tf-180').onclick=function(){days=180;setTF(180,'tf-180');};
-document.getElementById('tf-365').onclick=function(){days=365;setTF(365,'tf-365');};
-document.getElementById('tf-730').onclick=function(){days=730;setTF(730,'tf-730');};
-document.getElementById('tf-max').onclick=function(){days=1000;setTF(1000,'tf-max');};
-document.getElementById('inp').onkeypress=function(e){if(e.key==='Enter')doSearch();};
+// All buttons wired inline via onclick= in HTML attributes above.
+// This ensures they work on all mobile browsers without timing issues.
 loadSym('BTC');
 function doSearch(){var v=document.getElementById('inp').value.trim().toUpperCase();if(!v)return;coinSym=v;sym=v+'USDT';fetchData();}
 function setMode(m){mode=m;document.getElementById('m-swing').classList.toggle('on',m==='swing');document.getElementById('m-scalp').classList.toggle('on',m==='scalp');if(sym)fetchData();}
