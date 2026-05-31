@@ -3,703 +3,366 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EW Strategy V6 - Dashboard</title>
+<title>EW Strategy V7 Dashboard</title>
 <style>
-  :root {
-    --bg: #0a0e17; --card: #111827; --border: #1f2937;
-    --text: #e5e7eb; --muted: #9ca3af; --accent: #10b981;
-    --signal: #22c55e; --watch: #f59e0b; --danger: #ef4444;
-    --ew: #8b5cf6; --trend: #3b82f6; --info: #06b6d4;
-  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg); color: var(--text); line-height: 1.6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    min-height: 100vh;
   }
-  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-  header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+  .header {
+    background: #111;
+    border-bottom: 1px solid #222;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
-  h1 { font-size: 1.5rem; font-weight: 700; }
-  h1 span { color: var(--accent); }
-  .version { color: var(--muted); font-size: 0.85rem; }
-  .market-bar {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 12px; margin-bottom: 24px; background: var(--card);
-    border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+  .header h1 { font-size: 18px; color: #00ff88; }
+  .header .status { font-size: 12px; color: #666; }
+  .header .status.online { color: #00ff88; }
+  .header .status.offline { color: #ff4444; }
+  .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 16px;
   }
-  .market-item { text-align: center; }
-  .market-label { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
-  .market-value { display: block; font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
-  .market-value.ok { color: var(--signal); }
-  .market-value.warn { color: var(--watch); }
-  .market-value.block { color: var(--danger); }
-  .stats-bar {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px; margin-bottom: 24px;
-  }
-  .stat-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px; text-align: center;
-  }
-  .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
-  .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
-  .filters {
-    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
-  }
-  .filter-btn {
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); padding: 8px 16px; border-radius: 8px;
-    cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
-  }
-  .filter-btn:hover, .filter-btn.active {
-    background: var(--accent); color: #000; border-color: var(--accent);
-  }
-  .signals-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-    gap: 16px;
-  }
+  .card h2 { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .metric { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+  .metric:last-child { border-bottom: none; }
+  .metric .label { color: #666; }
+  .metric .value { color: #e0e0e0; font-weight: 500; }
+  .metric .value.bull { color: #00ff88; }
+  .metric .value.bear { color: #ff4444; }
+  .metric .value.warn { color: #ffaa00; }
   .signal-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px; position: relative;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .signal-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-  .signal-card.ew-validated { border-left: 4px solid var(--ew); }
-  .signal-card.trend-only { border-left: 4px solid var(--trend); opacity: 0.85; }
-  .signal-card.watch { border-left: 4px solid var(--watch); opacity: 0.85; }
-  .signal-card.blocked { border-left: 4px solid var(--danger); opacity: 0.6; background: rgba(239,68,68,0.05); }
-  .badge {
-    display: inline-block; padding: 4px 10px; border-radius: 6px;
-    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
-  }
-  .badge-signal { background: rgba(34,197,94,0.15); color: var(--signal); }
-  .badge-watch { background: rgba(245,158,11,0.15); color: var(--watch); }
-  .badge-ew { background: rgba(139,92,246,0.15); color: var(--ew); }
-  .badge-trend { background: rgba(59,130,246,0.15); color: var(--trend); }
-  .badge-tier1 { background: rgba(234,179,8,0.15); color: #eab308; }
-  .badge-tier2 { background: rgba(156,163,175,0.15); color: #9ca3af; }
-  .badge-tier3 { background: rgba(120,113,108,0.15); color: #78716c; }
-  .badge-blocked { background: rgba(239,68,68,0.15); color: var(--danger); }
-  .card-header {
-    display: flex; justify-content: space-between; align-items: flex-start;
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 16px;
     margin-bottom: 12px;
   }
-  .coin-name { font-size: 1.2rem; font-weight: 700; }
-  .coin-name small { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
-  .structure { font-size: 0.9rem; color: var(--muted); margin-bottom: 8px; }
-  .structure.ew { color: var(--ew); font-weight: 600; }
-  .structure.trend { color: var(--trend); }
-  .score-bar {
-    display: flex; align-items: center; gap: 10px; margin: 12px 0;
+  .signal-card .sym { font-size: 16px; font-weight: 600; color: #fff; }
+  .signal-card .type { font-size: 11px; color: #888; margin-left: 8px; }
+  .signal-card .score-bar {
+    height: 4px;
+    background: #222;
+    border-radius: 2px;
+    margin: 8px 0;
+    overflow: hidden;
   }
-  .score-track {
-    flex: 1; height: 8px; background: var(--border); border-radius: 4px;
-    overflow: hidden; position: relative;
+  .signal-card .score-bar .fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
   }
-  .score-fill {
-    height: 100%; border-radius: 4px; transition: width 0.5s ease;
+  .signal-card .score-bar .fill.high { background: #00ff88; }
+  .signal-card .score-bar .fill.med { background: #ffaa00; }
+  .signal-card .score-bar .fill.low { background: #ff4444; }
+  .signal-card .details { font-size: 12px; color: #888; margin-top: 8px; }
+  .signal-card .details .row { display: flex; justify-content: space-between; margin: 4px 0; }
+  .signal-card .tps { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .signal-card .tp {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #1a1a1a;
+    color: #888;
   }
-  .score-fill.high { background: var(--signal); }
-  .score-fill.medium { background: var(--watch); }
-  .score-fill.low { background: var(--danger); }
-  .score-text { font-size: 0.85rem; font-weight: 600; min-width: 50px; }
-  .ceiling-info {
-    font-size: 0.75rem; color: var(--muted); margin-top: 2px;
+  .signal-card .tp.hit { background: #00ff8822; color: #00ff88; border: 1px solid #00ff8844; }
+  .engine-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #1a1a1a;
+    color: #666;
+    margin-right: 4px;
+    margin-bottom: 4px;
   }
-  .ceiling-info span { color: var(--info); }
-  .details-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    font-size: 0.85rem; margin: 12px 0;
+  .engine-badge.active { background: #00ff8822; color: #00ff88; }
+  .watch-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a1a1a;
+    font-size: 13px;
   }
-  .detail-item { display: flex; justify-content: space-between; }
-  .detail-label { color: var(--muted); }
-  .detail-value { font-weight: 600; }
-  .detail-value.green { color: var(--signal); }
-  .detail-value.red { color: var(--danger); }
-  .tps {
-    display: flex; gap: 6px; margin-top: 12px;
+  .watch-item:last-child { border-bottom: none; }
+  .watch-item .sym { color: #e0e0e0; }
+  .watch-item .score { color: #888; font-size: 12px; }
+  .refresh-btn {
+    background: #222;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
   }
-  .tp {
-    flex: 1; text-align: center; padding: 6px; border-radius: 6px;
-    background: var(--border); font-size: 0.75rem;
+  .refresh-btn:hover { background: #333; }
+  .error { color: #ff4444; font-size: 13px; padding: 20px; text-align: center; }
+  .loading { color: #888; font-size: 13px; padding: 20px; text-align: center; }
+  .section-title {
+    font-size: 14px;
+    color: #fff;
+    margin: 20px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #222;
   }
-  .tp.hit { background: rgba(34,197,94,0.2); color: var(--signal); }
-  .tp-label { color: var(--muted); font-size: 0.65rem; }
-  .tp-value { font-weight: 700; }
-  .upload-area {
-    border: 2px dashed var(--border); border-radius: 12px;
-    padding: 40px; text-align: center; margin-bottom: 24px;
-    cursor: pointer; transition: all 0.2s;
+  .mtf-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
   }
-  .upload-area:hover { border-color: var(--accent); }
-  .upload-area.dragover { border-color: var(--accent); background: rgba(16,185,129,0.05); }
-  .upload-icon { font-size: 2rem; margin-bottom: 8px; }
-  .hidden { display: none; }
-  .backtest-results {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px; margin-bottom: 24px;
+  .mtf-item {
+    text-align: center;
+    padding: 8px;
+    background: #1a1a1a;
+    border-radius: 4px;
+    font-size: 12px;
   }
-  .backtest-results h3 { margin-bottom: 16px; }
-  .result-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-  }
-  .result-item { text-align: center; }
-  .result-value { font-size: 1.4rem; font-weight: 700; }
-  .result-value.win { color: var(--signal); }
-  .result-value.loss { color: var(--danger); }
-  .result-label { font-size: 0.75rem; color: var(--muted); }
-  .empty-state {
-    text-align: center; padding: 60px 20px; color: var(--muted);
-  }
-  .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
-  .scoring-table {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px; margin-bottom: 24px;
-    overflow-x: auto;
-  }
-  .scoring-table h3 { margin-bottom: 12px; }
-  .scoring-table table {
-    width: 100%; border-collapse: collapse; font-size: 0.85rem;
-  }
-  .scoring-table th, .scoring-table td {
-    padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);
-  }
-  .scoring-table th { color: var(--muted); font-weight: 600; }
-  .scoring-table td { color: var(--text); }
-  .scoring-table tr:hover { background: rgba(255,255,255,0.02); }
-  @media (max-width: 768px) {
-    .signals-grid { grid-template-columns: 1fr; }
-    .details-grid { grid-template-columns: 1fr; }
+  .mtf-item .tf { color: #666; font-size: 10px; }
+  .mtf-item .dir { color: #e0e0e0; font-weight: 500; }
+  .mtf-item .dir.bull { color: #00ff88; }
+  .mtf-item .dir.bear { color: #ff4444; }
+  .pattern-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #ffaa0022;
+    color: #ffaa00;
+    margin-right: 4px;
   }
 </style>
 </head>
 <body>
+<div class="header">
+  <h1>EW Strategy V7 Dashboard</h1>
+  <div>
+    <span class="status" id="conn-status">Checking...</span>
+    <button class="refresh-btn" onclick="loadData()">Refresh</button>
+  </div>
+</div>
+
 <div class="container">
-  <header>
-    <div>
-      <h1>EW Strategy <span>V6</span></h1>
-      <div class="version">Adaptive Structure-Aware | Fixed Scoring | Hard Ceilings | Hard Market Filters</div>
-    </div>
-    <div style="text-align:right">
-      <div id="last-update" style="color:var(--muted);font-size:0.8rem">Waiting for data...</div>
-    </div>
-  </header>
+  <div id="loading" class="loading">Loading...</div>
+  <div id="error" class="error" style="display:none"></div>
+  <div id="content" style="display:none">
 
-  <div class="market-bar" id="market-bar">
-    <div class="market-item">
-      <span class="market-label">BTC.D</span>
-      <span class="market-value" id="m-btcd">--</span>
-    </div>
-    <div class="market-item">
-      <span class="market-label">TOTAL</span>
-      <span class="market-value" id="m-total">--</span>
-    </div>
-    <div class="market-item">
-      <span class="market-label">TOTAL3</span>
-      <span class="market-value" id="m-total3">--</span>
-    </div>
-    <div class="market-item">
-      <span class="market-label">F&G</span>
-      <span class="market-value" id="m-fg">--</span>
-    </div>
-    <div class="market-item">
-      <span class="market-label">Status</span>
-      <span class="market-value" id="m-status">--</span>
-    </div>
-  </div>
+    <!-- Market Context -->
+    <div class="section-title">Market Context</div>
+    <div class="grid" id="market-grid"></div>
 
-  <div class="scoring-table">
-    <h3>V6 Scoring Table (Hard Ceilings)</h3>
-    <table>
-      <thead>
-        <tr><th>Structure</th><th>Max Score</th><th>EW Bonus</th><th>Fib Bonus</th><th>Notes</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>TREND_CONTINUATION</td><td style="color:var(--watch)">55</td><td>0</td><td>0</td><td>Trend only, NO EW/Fib</td></tr>
-        <tr><td>IMPULSE_W3_LIKELY</td><td style="color:var(--watch)">55</td><td>0</td><td>0</td><td>WATCH only, 3xHH/HL, ADX&gt;30</td></tr>
-        <tr><td>EARLY_TREND</td><td style="color:var(--danger)">50</td><td>0</td><td>0</td><td>WATCH only, weakest signal</td></tr>
-        <tr><td>EW_W2 / EW_W4</td><td style="color:var(--signal)">100</td><td>25</td><td>15</td><td>Full EW validation</td></tr>
-        <tr><td>ABC_ZIGZAG</td><td style="color:var(--signal)">100</td><td>25</td><td>15</td><td>Full EW validation</td></tr>
-        <tr><td>WXYXZ</td><td style="color:var(--ew)">95</td><td>20</td><td>12</td><td>Complex but validated</td></tr>
-        <tr><td>EXPANDED_FLAT</td><td style="color:var(--ew)">90</td><td>18</td><td>10</td><td>Validated correction</td></tr>
-        <tr><td>RUNNING_CORRECTION</td><td style="color:var(--ew)">85</td><td>15</td><td>8</td><td>Validated correction</td></tr>
-        <tr><td>DOUBLE_BOTTOM</td><td>80</td><td>12</td><td>8</td><td>Pattern only</td></tr>
-        <tr><td>FALLING_WEDGE</td><td>75</td><td>10</td><td>5</td><td>Pattern only</td></tr>
-      </tbody>
-    </table>
-  </div>
+    <!-- Engine Status -->
+    <div class="section-title">V7 Engines</div>
+    <div class="card" id="engines-card"></div>
 
-  <div class="stats-bar">
-    <div class="stat-card">
-      <div class="stat-value" id="stat-signals">0</div>
-      <div class="stat-label">Active Signals</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-watches">0</div>
-      <div class="stat-label">Watches</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-ew">0</div>
-      <div class="stat-label">EW Validated</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-trend">0</div>
-      <div class="stat-label">Trend Only</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-winrate">-</div>
-      <div class="stat-label">Win Rate</div>
-    </div>
-  </div>
+    <!-- Active Signals -->
+    <div class="section-title">Active Signals (<span id="sig-count">0</span>)</div>
+    <div id="signals-list"></div>
 
-  <div class="upload-area" id="upload-area">
-    <div class="upload-icon">📁</div>
-    <div><strong>Drop JSON/CSV file</strong> or click to upload</div>
-    <div style="color:var(--muted);font-size:0.8rem;margin-top:4px">
-      Export from bot: <code>signals.json</code> or <code>trades.csv</code>
-    </div>
-    <input type="file" id="file-input" accept=".json,.csv" style="display:none">
-  </div>
+    <!-- Watch List -->
+    <div class="section-title">Watch List (<span id="watch-count">0</span>)</div>
+    <div class="card" id="watch-card"></div>
 
-  <div class="backtest-results hidden" id="backtest-panel">
-    <h3>Backtest Results</h3>
-    <div class="result-grid">
-      <div class="result-item">
-        <div class="result-value win" id="bt-total">0</div>
-        <div class="result-label">Total Signals</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value win" id="bt-wins">0</div>
-        <div class="result-label">TP1+ Hit</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value loss" id="bt-losses">0</div>
-        <div class="result-label">SL Hit</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value" id="bt-winrate">0%</div>
-        <div class="result-label">Win Rate</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value" id="bt-avg">0%</div>
-        <div class="result-label">Avg Return</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value" id="bt-best">-</div>
-        <div class="result-label">Best Coin</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="filters">
-    <button class="filter-btn active" data-filter="all">All</button>
-    <button class="filter-btn" data-filter="signal">Signals Only</button>
-    <button class="filter-btn" data-filter="watch">Watches Only</button>
-    <button class="filter-btn" data-filter="blocked">Blocked</button>
-    <button class="filter-btn" data-filter="ew">EW Validated</button>
-    <button class="filter-btn" data-filter="trend">Trend Only</button>
-    <button class="filter-btn" data-filter="tier1">Tier 1</button>
-    <button class="filter-btn" data-filter="tier2">Tier 2</button>
-    <button class="filter-btn" data-filter="tier3">Tier 3</button>
-  </div>
-
-  <div class="signals-grid" id="signals-grid">
-    <div class="empty-state">
-      <div class="icon">📡</div>
-      <div>No signals loaded yet</div>
-      <div style="font-size:0.85rem;margin-top:8px">Upload your bot output or wait for live connection</div>
-    </div>
+    <!-- Stats -->
+    <div class="section-title">Stats</div>
+    <div class="grid" id="stats-grid"></div>
   </div>
 </div>
 
 <script>
-let allSignals = [];
-let currentFilter = 'all';
+const API_BASE = 'http://localhost:8080';
 
-const uploadArea = document.getElementById('upload-area');
-const fileInput = document.getElementById('file-input');
+async function loadData() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('content').style.display = 'none';
 
-uploadArea.addEventListener('click', () => fileInput.click());
-uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
-uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-uploadArea.addEventListener('drop', (e) => {
-  e.preventDefault();
-  uploadArea.classList.remove('dragover');
-  handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+  try {
+    const [statusRes, signalsRes] = await Promise.all([
+      fetch(`${API_BASE}/api/status`),
+      fetch(`${API_BASE}/api/signals`)
+    ]);
 
-function handleFile(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const content = e.target.result;
-    if (file.name.endsWith('.json')) {
-      try {
-        const data = JSON.parse(content);
-        loadSignals(Array.isArray(data) ? data : [data]);
-      } catch (err) {
-        alert('Invalid JSON: ' + err.message);
-      }
-    } else if (file.name.endsWith('.csv')) {
-      parseCSV(content);
+    if (!statusRes.ok || !signalsRes.ok) throw new Error('API error');
+
+    const status = await statusRes.json();
+    const signals = await signalsRes.json();
+
+    renderStatus(status);
+    renderSignals(signals);
+    renderWatches(signals);
+    renderStats(status, signals);
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('conn-status').textContent = 'Online';
+    document.getElementById('conn-status').className = 'status online';
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = 'Error: ' + err.message;
+    document.getElementById('conn-status').textContent = 'Offline';
+    document.getElementById('conn-status').className = 'status offline';
+  }
+}
+
+function renderStatus(data) {
+  const ctx = data.market_ctx || {};
+  const grid = document.getElementById('market-grid');
+  grid.innerHTML = `
+    <div class="card">
+      <h2>Fear & Greed</h2>
+      <div class="metric"><span class="label">Index</span><span class="value ${ctx.fg_now <= 20 ? 'bear' : ctx.fg_now >= 80 ? 'warn' : ''}">${ctx.fg_now || 'N/A'}</span></div>
+      <div class="metric"><span class="label">Zone</span><span class="value">${ctx.fg_zone || 'N/A'}</span></div>
+      <div class="metric"><span class="label">Trend</span><span class="value ${ctx.fg_trend === 'RISING' ? 'bull' : ctx.fg_trend === 'FALLING' ? 'bear' : ''}">${ctx.fg_trend || 'N/A'}</span></div>
+    </div>
+    <div class="card">
+      <h2>Bitcoin Dominance</h2>
+      <div class="metric"><span class="label">BTC.D</span><span class="value">${ctx.btc_dom || 'N/A'}%</span></div>
+      <div class="metric"><span class="label">Trend</span><span class="value ${ctx.btc_dom_trend === 'RISING' ? 'bull' : ctx.btc_dom_trend === 'FALLING' ? 'bear' : ''}">${ctx.btc_dom_trend || 'N/A'}</span></div>
+    </div>
+    <div class="card">
+      <h2>Market Cap</h2>
+      <div class="metric"><span class="label">Total</span><span class="value">${ctx.total ? '$' + (ctx.total / 1e12).toFixed(2) + 'T' : 'N/A'}</span></div>
+      <div class="metric"><span class="label">Trend</span><span class="value ${ctx.total_trend === 'RISING' ? 'bull' : ctx.total_trend === 'FALLING' ? 'bear' : ''}">${ctx.total_trend || 'N/A'}</span></div>
+    </div>
+  `;
+
+  const engines = data.engine_data || {};
+  const enginesCard = document.getElementById('engines-card');
+  enginesCard.innerHTML = Object.entries(engines).map(([k, v]) =>
+    `<span class="engine-badge active">${k}: ${v}</span>`
+  ).join('');
+}
+
+function renderSignals(data) {
+  const signals = data.signals || [];
+  document.getElementById('sig-count').textContent = signals.length;
+  const list = document.getElementById('signals-list');
+
+  if (signals.length === 0) {
+    list.innerHTML = '<div class="card" style="color:#666;font-size:13px;">No active signals</div>';
+    return;
+  }
+
+  list.innerHTML = signals.map(s => {
+    const score = s.score || 0;
+    const scoreClass = score >= 85 ? 'high' : score >= 55 ? 'med' : 'low';
+    const entry = s.entry ? '$' + s.entry.toFixed(2) : 'N/A';
+
+    // V7 engine data (underscore-prefixed from API)
+    const mtf = s._mtf_alignment || {};
+    const patterns = s._candlestick_patterns || [];
+    const extWave = s._extended_wave || {};
+    const liq = s._liquidity_info || {};
+
+    let mtfHtml = '';
+    if (mtf && mtf['1d']) {
+      mtfHtml = `<div class="mtf-grid">
+        <div class="mtf-item"><div class="tf">1D</div><div class="dir ${(mtf['1d'] || '').includes('bull') ? 'bull' : (mtf['1d'] || '').includes('bear') ? 'bear' : ''}">${mtf['1d'] || '?'}</div></div>
+        <div class="mtf-item"><div class="tf">4H</div><div class="dir ${(mtf['4h'] || '').includes('bull') ? 'bull' : (mtf['4h'] || '').includes('bear') ? 'bear' : ''}">${mtf['4h'] || '?'}</div></div>
+        <div class="mtf-item"><div class="tf">1H</div><div class="dir ${(mtf['1h'] || '').includes('bull') ? 'bull' : (mtf['1h'] || '').includes('bear') ? 'bear' : ''}">${mtf['1h'] || '?'}</div></div>
+      </div>`;
     }
-  };
-  reader.readAsText(file);
+
+    let patternsHtml = '';
+    if (patterns.length > 0) {
+      patternsHtml = `<div style="margin-top:8px">${patterns.map(p => `<span class="pattern-tag">${p}</span>`).join('')}</div>`;
+    }
+
+    let extHtml = '';
+    if (extWave.extended) {
+      extHtml = `<div class="metric" style="margin-top:8px"><span class="label">Extended Wave</span><span class="value bull">${extWave.label || ''}</span></div>`;
+    }
+
+    let liqHtml = '';
+    if (liq.choch) {
+      liqHtml = `<span class="engine-badge active" style="margin-top:8px;display:inline-block">CHoCH: Bullish</span>`;
+    } else if (liq.bos) {
+      liqHtml = `<span class="engine-badge active" style="margin-top:8px;display:inline-block">BOS: Bullish</span>`;
+    }
+
+    return `
+      <div class="signal-card">
+        <div><span class="sym">${s.sym || '?'}</span><span class="type">${s.type || ''}</span></div>
+        <div class="score-bar"><div class="fill ${scoreClass}" style="width:${score}%"></div></div>
+        <div class="details">
+          <div class="row"><span>Score: ${score}/100</span><span>${s.conf || '?'}</span></div>
+          <div class="row"><span>Structure: ${s.struct_label || '?'}</span><span>Phase: ${s.phase || '?'}</span></div>
+          <div class="row"><span>Entry: ${entry}</span><span>RSI: ${s.rsi ? s.rsi.toFixed(0) : '?'}</span></div>
+          ${mtfHtml}
+          ${patternsHtml}
+          ${extHtml}
+          ${liqHtml}
+        </div>
+        <div class="tps">
+          <span class="tp ${s.hit_tp1 ? 'hit' : ''}">TP1: ${s.tp1 ? '$' + s.tp1.toFixed(2) : '?'}</span>
+          <span class="tp ${s.hit_tp2 ? 'hit' : ''}">TP2: ${s.tp2 ? '$' + s.tp2.toFixed(2) : '?'}</span>
+          <span class="tp ${s.hit_tp3 ? 'hit' : ''}">TP3: ${s.tp3 ? '$' + s.tp3.toFixed(2) : '?'}</span>
+          <span class="tp ${s.hit_tp4 ? 'hit' : ''}">TP4: ${s.tp4 ? '$' + s.tp4.toFixed(2) : '?'}</span>
+          <span class="tp" style="color:#ff4444">SL: ${s.sl ? '$' + s.sl.toFixed(2) : '?'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
-function parseCSV(csv) {
-  const lines = csv.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-  const signals = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-    const obj = {};
-    headers.forEach((h, idx) => obj[h] = values[idx]);
-    signals.push(obj);
-  }
-  loadSignals(signals);
-}
+function renderWatches(data) {
+  const watches = data.watches || [];
+  document.getElementById('watch-count').textContent = watches.length;
+  const card = document.getElementById('watch-card');
 
-function loadSignals(signals) {
-  allSignals = signals.map(s => ({
-    sym: s.sym || s.symbol || 'UNKNOWN',
-    type: s.type || 'SWING',
-    tier: parseInt(s.tier) || 1,
-    current: parseFloat(s.current) || 0,
-    score: parseInt(s.score) || 0,
-    rawScore: parseInt(s._raw_score) || s.score || 0,
-    maxCeiling: parseInt(s._max_ceiling) || 100,
-    structType: s.struct_type || s.structure || 'UNKNOWN',
-    structLabel: s.struct_label || s.structure || 'Unknown',
-    subType: s.sub_type || '',
-    trend: s.trend || 'NEUTRAL',
-    phase: s.phase || 'NEUTRAL',
-    regime: s.regime || 'Normal',
-    rsi: parseFloat(s.rsi) || 50,
-    stoch: parseFloat(s.stoch) || 50,
-    sl: parseFloat(s.sl) || 0,
-    tp1: parseFloat(s.tp1) || 0,
-    tp2: parseFloat(s.tp2) || 0,
-    tp3: parseFloat(s.tp3) || 0,
-    tp4: parseFloat(s.tp4) || 0,
-    positionSize: parseInt(s.position_size) || 0,
-    isWatch: s.watch === true || s.watch === 'true' || s.watch_only === true || s.structType === 'TREND_CONTINUATION',
-    isLocked: s.is_locked === true || s.is_locked === 'true',
-    divergence: s.divergence === true || s.divergence === 'true',
-    alternate: s.alternate || '',
-    slReason: s.sl_reason || '',
-    hold: s.hold || '',
-    conf: s.conf || 'DEVELOPING',
-    entry: parseFloat(s.entry) || parseFloat(s.current) || 0,
-    exitPrice: parseFloat(s.exit_price) || 0,
-    result: s.result || '',
-    hitTP1: s.hit_tp1 === true || s.hit_tp1 === 'true',
-    hitTP2: s.hit_tp2 === true || s.hit_tp2 === 'true',
-    hitTP3: s.hit_tp3 === true || s.hit_tp3 === 'true',
-    hitTP4: s.hit_tp4 === true || s.hit_tp4 === 'true',
-    closed: s.closed === true || s.closed === 'true',
-    isBlocked: s.blocked === true || s.blocked === 'true' || s.hard_filter === true || s.hard_filter === 'true',
-    blockReason: s.block_reason || s.hard_filter_reason || '',
-    marketCtx: s.market_ctx || null,
-    time: s.time || new Date().toISOString()
-  }));
-
-  updateMarketBar(allSignals[0]?.marketCtx);
-  updateStats();
-  renderSignals();
-  calculateBacktest();
-  document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleString();
-  document.getElementById('upload-area').classList.add('hidden');
-}
-
-function updateMarketBar(ctx) {
-  if (!ctx) return;
-  const btcd = ctx.btc_dom || ctx.btcd || '--';
-  const total = ctx.total_trend || ctx.total || '--';
-  const total3 = ctx.total3_trend || ctx.total3 || '--';
-  const fg = ctx.fg_now || ctx.fg || '--';
-  const fgZone = ctx.fg_zone || '';
-
-  document.getElementById('m-btcd').textContent = typeof btcd === 'number' ? btcd + '%' : btcd;
-  document.getElementById('m-total').textContent = total;
-  document.getElementById('m-total3').textContent = total3;
-  document.getElementById('m-fg').textContent = typeof fg === 'number' ? fg + ' ' + fgZone : fg;
-
-  const statusEl = document.getElementById('m-status');
-  if (fg <= 20) {
-    statusEl.textContent = 'BLOCKED';
-    statusEl.className = 'market-value block';
-  } else if (fg <= 40 || total === 'FALLING') {
-    statusEl.textContent = 'CAUTION';
-    statusEl.className = 'market-value warn';
-  } else {
-    statusEl.textContent = 'OK';
-    statusEl.className = 'market-value ok';
-  }
-}
-
-function updateStats() {
-  const signals = allSignals.filter(s => !s.isWatch && !s.isBlocked);
-  const watches = allSignals.filter(s => s.isWatch && !s.isBlocked);
-  const blocked = allSignals.filter(s => s.isBlocked);
-  const ew = allSignals.filter(s => ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType) && !s.isBlocked);
-  const trend = allSignals.filter(s => s.structType === 'TREND_CONTINUATION' && !s.isBlocked);
-  const closed = allSignals.filter(s => s.closed);
-  const wins = closed.filter(s => s.result === 'win' || s.hitTP1);
-  const winRate = closed.length > 0 ? Math.round((wins.length / closed.length) * 100) + '%' : '-';
-
-  document.getElementById('stat-signals').textContent = signals.length;
-  document.getElementById('stat-watches').textContent = watches.length;
-  document.getElementById('stat-ew').textContent = ew.length;
-  document.getElementById('stat-trend').textContent = trend.length;
-  document.getElementById('stat-winrate').textContent = winRate;
-}
-
-function calculateBacktest() {
-  const closed = allSignals.filter(s => s.closed);
-  if (closed.length === 0) {
-    document.getElementById('backtest-panel').classList.add('hidden');
+  if (watches.length === 0) {
+    card.innerHTML = '<div style="color:#666;font-size:13px;">No watches</div>';
     return;
   }
 
-  const wins = closed.filter(s => s.result === 'win' || s.hitTP1);
-  const losses = closed.filter(s => s.result === 'loss' || (s.closed && !s.hitTP1));
-  const winRate = closed.length > 0 ? Math.round((wins.length / closed.length) * 100) : 0;
-
-  let totalReturn = 0;
-  const coinReturns = {};
-  closed.forEach(s => {
-    const ret = s.exitPrice && s.entry ? ((s.exitPrice - s.entry) / s.entry * 100) : 0;
-    totalReturn += ret;
-    if (!coinReturns[s.sym]) coinReturns[s.sym] = [];
-    coinReturns[s.sym].push(ret);
-  });
-  const avgReturn = closed.length > 0 ? (totalReturn / closed.length).toFixed(1) : 0;
-
-  let bestCoin = '-';
-  let bestAvg = -Infinity;
-  Object.entries(coinReturns).forEach(([coin, returns]) => {
-    const avg = returns.reduce((a,b) => a+b, 0) / returns.length;
-    if (avg > bestAvg) { bestAvg = avg; bestCoin = coin; }
-  });
-
-  document.getElementById('bt-total').textContent = closed.length;
-  document.getElementById('bt-wins').textContent = wins.length;
-  document.getElementById('bt-losses').textContent = losses.length;
-  document.getElementById('bt-winrate').textContent = winRate + '%';
-  document.getElementById('bt-avg').textContent = avgReturn + '%';
-  document.getElementById('bt-best').textContent = bestCoin;
-  document.getElementById('backtest-panel').classList.remove('hidden');
+  card.innerHTML = watches.map(w => `
+    <div class="watch-item">
+      <span class="sym">${w.sym || '?'}</span>
+      <span class="score">${w.type || ''}</span>
+    </div>
+  `).join('');
 }
 
-function renderSignals() {
-  const grid = document.getElementById('signals-grid');
-  let filtered = allSignals;
-
-  if (currentFilter === 'signal') filtered = allSignals.filter(s => !s.isWatch && !s.isBlocked);
-  else if (currentFilter === 'watch') filtered = allSignals.filter(s => s.isWatch && !s.isBlocked);
-  else if (currentFilter === 'blocked') filtered = allSignals.filter(s => s.isBlocked);
-  else if (currentFilter === 'ew') filtered = allSignals.filter(s => ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType) && !s.isBlocked);
-  else if (currentFilter === 'trend') filtered = allSignals.filter(s => s.structType === 'TREND_CONTINUATION' && !s.isBlocked);
-  else if (currentFilter === 'tier1') filtered = allSignals.filter(s => s.tier === 1 && !s.isBlocked);
-  else if (currentFilter === 'tier2') filtered = allSignals.filter(s => s.tier === 2 && !s.isBlocked);
-  else if (currentFilter === 'tier3') filtered = allSignals.filter(s => s.tier === 3 && !s.isBlocked);
-
-  if (filtered.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><div>No signals match this filter</div></div>';
-    return;
-  }
-
-  filtered.sort((a, b) => {
-    if (a.isWatch !== b.isWatch) return a.isWatch ? 1 : -1;
-    return b.score - a.score;
-  });
-
-  grid.innerHTML = filtered.map(s => renderCard(s)).join('');
-}
-
-function renderCard(s) {
-  const isEW = ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType);
-  const isTrend = s.structType === 'TREND_CONTINUATION';
-  const isBlocked = s.isBlocked;
-  const cardClass = isBlocked ? 'blocked' : (s.isWatch ? 'watch' : (isEW ? 'ew-validated' : (isTrend ? 'trend-only' : '')));
-  const badgeType = isBlocked ? 'badge-blocked' : (s.isWatch ? 'badge-watch' : 'badge-signal');
-  const badgeText = isBlocked ? 'BLOCKED' : (s.isWatch ? 'WATCH' : 'SIGNAL');
-  const structClass = isEW ? 'ew' : (isTrend ? 'trend' : '');
-  const tierBadge = s.tier === 1 ? 'badge-tier1' : (s.tier === 2 ? 'badge-tier2' : 'badge-tier3');
-  const tierText = s.tier === 1 ? 'T1' : (s.tier === 2 ? 'T2' : 'T3');
-  const scoreClass = s.score >= 70 ? 'high' : (s.score >= 50 ? 'medium' : 'low');
-  const ceilingInfo = s.maxCeiling < 100 ? `<div class="ceiling-info">Ceiling: <span>${s.maxCeiling}</span> | Raw: ${s.rawScore} | Capped: ${s.score}</div>` : '';
-
-  const tp1Class = s.hitTP1 ? 'hit' : '';
-  const tp2Class = s.hitTP2 ? 'hit' : '';
-  const tp3Class = s.hitTP3 ? 'hit' : '';
-  const tp4Class = s.hitTP4 ? 'hit' : '';
-
-  return `
-    <div class="signal-card ${cardClass}">
-      <div class="card-header">
-        <div>
-          <span class="badge ${badgeType}">${badgeText}</span>
-          <span class="badge ${tierBadge}">${tierText}</span>
-          ${s.isLocked ? '<span class="badge" style="background:rgba(16,185,129,0.15);color:var(--accent)">🔒 LOCKED</span>' : ''}
-          <div class="coin-name">${s.sym} <small>/USDT</small></div>
-          <div class="structure ${structClass}">${s.structLabel}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:1.4rem;font-weight:700;color:var(--accent)">$${s.current.toFixed(s.current >= 1000 ? 0 : (s.current >= 1 ? 2 : 4))}</div>
-          <div style="font-size:0.75rem;color:var(--muted)">${new Date(s.time).toLocaleDateString()}</div>
-        </div>
-      </div>
-
-      <div class="score-bar">
-        <div class="score-track">
-          <div class="score-fill ${scoreClass}" style="width:${s.score}%"></div>
-        </div>
-        <div class="score-text">${s.score}/100</div>
-      </div>
-      ${ceilingInfo}
-
-      <div class="details-grid">
-        <div class="detail-item">
-          <span class="detail-label">Trend</span>
-          <span class="detail-value">${s.trend}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Phase</span>
-          <span class="detail-value">${s.phase}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">RSI</span>
-          <span class="detail-value ${s.rsi < 35 ? 'green' : (s.rsi > 70 ? 'red' : '')}">${s.rsi.toFixed(0)}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Stoch</span>
-          <span class="detail-value">${s.stoch.toFixed(0)}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Regime</span>
-          <span class="detail-value">${s.regime}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Position</span>
-          <span class="detail-value">${s.positionSize}%</span>
-        </div>
-      </div>
-
-      ${s.sl > 0 ? `
-      <div class="details-grid" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
-        <div class="detail-item">
-          <span class="detail-label">SL</span>
-          <span class="detail-value red">$${s.sl.toFixed(s.sl >= 1000 ? 0 : 2)}</span>
-        </div>
-        <div class="detail-item" style="grid-column:1/-1">
-          <span class="detail-label">Reason</span>
-          <span class="detail-value" style="font-size:0.75rem">${s.slReason}</span>
-        </div>
-      </div>
-      ` : ''}
-
-      <div class="tps">
-        <div class="tp ${tp1Class}">
-          <div class="tp-label">TP1</div>
-          <div class="tp-value">$${s.tp1.toFixed(s.tp1 >= 1000 ? 0 : 2)}</div>
-        </div>
-        <div class="tp ${tp2Class}">
-          <div class="tp-label">TP2</div>
-          <div class="tp-value">$${s.tp2.toFixed(s.tp2 >= 1000 ? 0 : 2)}</div>
-        </div>
-        <div class="tp ${tp3Class}">
-          <div class="tp-label">TP3</div>
-          <div class="tp-value">$${s.tp3.toFixed(s.tp3 >= 1000 ? 0 : 2)}</div>
-        </div>
-        <div class="tp ${tp4Class}">
-          <div class="tp-label">TP4</div>
-          <div class="tp-value">$${s.tp4.toFixed(s.tp4 >= 1000 ? 0 : 2)}</div>
-        </div>
-      </div>
-
-      ${s.isBlocked ? `<div style="margin-top:8px;font-size:0.85rem;font-weight:600;color:var(--danger)">🚫 ${s.blockReason}</div>` : ''}
-      ${s.divergence ? '<div style="margin-top:8px;font-size:0.8rem;color:var(--signal)">🔄 Bullish Divergence</div>' : ''}
-      ${s.alternate ? `<div style="margin-top:4px;font-size:0.75rem;color:var(--watch)">⚠️ Alternate: ${s.alternate}</div>` : ''}
-      ${s.result ? `<div style="margin-top:8px;font-size:0.85rem;font-weight:600;color:${s.result === 'win' ? 'var(--signal)' : 'var(--danger)'}">Result: ${s.result.toUpperCase()} ${s.exitPrice ? '@ $' + s.exitPrice.toFixed(2) : ''}</div>` : ''}
+function renderStats(status, signals) {
+  const stats = signals.stats || {};
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = `
+    <div class="card">
+      <h2>Bot Stats</h2>
+      <div class="metric"><span class="label">Version</span><span class="value">${status.version || '?'}</span></div>
+      <div class="metric"><span class="label">Scans</span><span class="value">${status.scan_count || 0}</span></div>
+      <div class="metric"><span class="label">Signals Sent</span><span class="value">${status.sent_signals_count || 0}</span></div>
+      <div class="metric"><span class="label">Watches Sent</span><span class="value">${status.sent_watches_count || 0}</span></div>
+    </div>
+    <div class="card">
+      <h2>Trade Stats</h2>
+      <div class="metric"><span class="label">Active</span><span class="value">${stats.trades || 0}</span></div>
+      <div class="metric"><span class="label">Signals</span><span class="value">${stats.signals || 0}</span></div>
+      <div class="metric"><span class="label">Watches</span><span class="value">${stats.watches || 0}</span></div>
+      <div class="metric"><span class="label">Scans</span><span class="value">${stats.scans || 0}</span></div>
     </div>
   `;
 }
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter = btn.dataset.filter;
-    renderSignals();
-  });
-});
-
-const demoSignals = [
-  {
-    sym: "BTC", tier: 1, type: "SWING", current: 67500, score: 88, _raw_score: 92, _max_ceiling: 100,
-    struct_type: "EW_W4", struct_label: "Standard EW - W4 Entry", sub_type: "",
-    trend: "STRONG_UPTREND", phase: "IMPULSING", regime: "Normal",
-    rsi: 42, stoch: 35, position_size: 100,
-    sl: 64200, tp1: 72000, tp2: 78000, tp3: 85000, tp4: 95000,
-    sl_reason: "Below W1 Top (W4 overlap rule)", hold: "Days to weeks",
-    conf: "HIGH", is_locked: false, divergence: true, time: new Date().toISOString()
-  },
-  {
-    sym: "ETH", tier: 1, type: "SWING", current: 3520, score: 72, _raw_score: 78, _max_ceiling: 100,
-    struct_type: "ABC_ZIGZAG", struct_label: "ABC Zigzag Correction", sub_type: "",
-    trend: "UPTREND", phase: "CORRECTING_WITHIN_UPTREND", regime: "Normal",
-    rsi: 38, stoch: 28, position_size: 75,
-    sl: 3350, tp1: 3800, tp2: 4200, tp3: 4800, tp4: 5500,
-    sl_reason: "Below Wave A Bottom", hold: "Days to weeks",
-    conf: "MEDIUM-HIGH", is_locked: false, divergence: false, time: new Date().toISOString()
-  },
-  {
-    sym: "SOL", tier: 1, type: "SWING", current: 148, score: 50, _raw_score: 55, _max_ceiling: 55,
-    struct_type: "TREND_CONTINUATION", struct_label: "Trend Continuation (W3/Parabolic) - WATCH", sub_type: "IMPULSE_W3_LIKELY",
-    trend: "UPTREND", phase: "TRENDING_UP", regime: "Normal",
-    rsi: 55, stoch: 62, position_size: 25,
-    sl: 135, tp1: 165, tp2: 185, tp3: 210, tp4: 240,
-    sl_reason: "Below last significant trough (trend support)", hold: "Days to weeks",
-    conf: "MEDIUM", is_locked: false, watch: true, divergence: false, time: new Date().toISOString()
-  },
-  {
-    sym: "XRP", tier: 1, type: "SCALP", current: 0.52, score: 45, _raw_score: 48, _max_ceiling: 50,
-    struct_type: "TREND_CONTINUATION", struct_label: "Early Trend Continuation - WATCH", sub_type: "EARLY_TREND",
-    trend: "NEUTRAL", phase: "RANGING", regime: "Low Volatility",
-    rsi: 48, stoch: 45, position_size: 10,
-    sl: 0.49, tp1: 0.56, tp2: 0.60, tp3: 0.65, tp4: 0.72,
-    sl_reason: "ATR-based trend SL (2.0x * 1.5)", hold: "1-3 days",
-    conf: "DEVELOPING", is_locked: false, watch: true, divergence: false, time: new Date().toISOString()
-  },
-  {
-    sym: "BTC", tier: 1, type: "SWING", current: 68000, score: 0, _raw_score: 0, _max_ceiling: 100,
-    struct_type: "DOUBLE_TOP", struct_label: "Double Top — No Long Signal", sub_type: "",
-    trend: "DOWNTREND", phase: "DOWNTREND", regime: "High Volatility",
-    rsi: 72, stoch: 80, position_size: 0,
-    sl: 0, tp1: 0, tp2: 0, tp3: 0, tp4: 0,
-    sl_reason: "No signal", hold: "",
-    conf: "NONE", is_locked: false, divergence: false, time: new Date().toISOString(),
-    result: "loss", exit_price: 65000, closed: true
-  },
-  {
-    sym: "SOL", tier: 1, type: "SWING", current: 148, score: 0, _raw_score: 0, _max_ceiling: 55,
-    struct_type: "TREND_CONTINUATION", struct_label: "Trend Continuation - BLOCKED", sub_type: "IMPULSE_W3_LIKELY",
-    trend: "UPTREND", phase: "TRENDING_UP", regime: "Normal",
-    rsi: 55, stoch: 62, position_size: 0,
-    sl: 0, tp1: 0, tp2: 0, tp3: 0, tp4: 0,
-    sl_reason: "N/A", hold: "Days to weeks",
-    conf: "NONE", is_locked: false, blocked: true, block_reason: "HARD FILTER: BTC.D=58% rising - Alt bloodbath", divergence: false, time: new Date().toISOString(),
-    market_ctx: { btc_dom: 58, total_trend: "RISING", total3_trend: "FALLING", fg_now: 35, fg_zone: "FEAR" }
-  }
-];
-
-loadSignals(demoSignals);
+// Auto-refresh every 30 seconds
+loadData();
+setInterval(loadData, 30000);
 </script>
 </body>
 </html>
