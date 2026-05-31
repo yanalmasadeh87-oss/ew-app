@@ -24,6 +24,17 @@
   h1 { font-size: 1.5rem; font-weight: 700; }
   h1 span { color: var(--accent); }
   .version { color: var(--muted); font-size: 0.85rem; }
+  .market-bar {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 12px; margin-bottom: 24px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+  }
+  .market-item { text-align: center; }
+  .market-label { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+  .market-value { display: block; font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
+  .market-value.ok { color: var(--signal); }
+  .market-value.warn { color: var(--watch); }
+  .market-value.block { color: var(--danger); }
   .stats-bar {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 12px; margin-bottom: 24px;
@@ -58,6 +69,7 @@
   .signal-card.ew-validated { border-left: 4px solid var(--ew); }
   .signal-card.trend-only { border-left: 4px solid var(--trend); opacity: 0.85; }
   .signal-card.watch { border-left: 4px solid var(--watch); opacity: 0.85; }
+  .signal-card.blocked { border-left: 4px solid var(--danger); opacity: 0.6; background: rgba(239,68,68,0.05); }
   .badge {
     display: inline-block; padding: 4px 10px; border-radius: 6px;
     font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
@@ -69,6 +81,7 @@
   .badge-tier1 { background: rgba(234,179,8,0.15); color: #eab308; }
   .badge-tier2 { background: rgba(156,163,175,0.15); color: #9ca3af; }
   .badge-tier3 { background: rgba(120,113,108,0.15); color: #78716c; }
+  .badge-blocked { background: rgba(239,68,68,0.15); color: var(--danger); }
   .card-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     margin-bottom: 12px;
@@ -168,15 +181,38 @@
   <header>
     <div>
       <h1>EW Strategy <span>V6</span></h1>
-      <div class="version">Adaptive Structure-Aware | Fixed Scoring | Hard Ceilings</div>
+      <div class="version">Adaptive Structure-Aware | Fixed Scoring | Hard Ceilings | Hard Market Filters</div>
     </div>
     <div style="text-align:right">
       <div id="last-update" style="color:var(--muted);font-size:0.8rem">Waiting for data...</div>
     </div>
   </header>
 
+  <div class="market-bar" id="market-bar">
+    <div class="market-item">
+      <span class="market-label">BTC.D</span>
+      <span class="market-value" id="m-btcd">--</span>
+    </div>
+    <div class="market-item">
+      <span class="market-label">TOTAL</span>
+      <span class="market-value" id="m-total">--</span>
+    </div>
+    <div class="market-item">
+      <span class="market-label">TOTAL3</span>
+      <span class="market-value" id="m-total3">--</span>
+    </div>
+    <div class="market-item">
+      <span class="market-label">F&G</span>
+      <span class="market-value" id="m-fg">--</span>
+    </div>
+    <div class="market-item">
+      <span class="market-label">Status</span>
+      <span class="market-value" id="m-status">--</span>
+    </div>
+  </div>
+
   <div class="scoring-table">
-    <h3>📊 V6 Scoring Table (Hard Ceilings)</h3>
+    <h3>V6 Scoring Table (Hard Ceilings)</h3>
     <table>
       <thead>
         <tr><th>Structure</th><th>Max Score</th><th>EW Bonus</th><th>Fib Bonus</th><th>Notes</th></tr>
@@ -229,7 +265,7 @@
   </div>
 
   <div class="backtest-results hidden" id="backtest-panel">
-    <h3>📈 Backtest Results</h3>
+    <h3>Backtest Results</h3>
     <div class="result-grid">
       <div class="result-item">
         <div class="result-value win" id="bt-total">0</div>
@@ -262,6 +298,7 @@
     <button class="filter-btn active" data-filter="all">All</button>
     <button class="filter-btn" data-filter="signal">Signals Only</button>
     <button class="filter-btn" data-filter="watch">Watches Only</button>
+    <button class="filter-btn" data-filter="blocked">Blocked</button>
     <button class="filter-btn" data-filter="ew">EW Validated</button>
     <button class="filter-btn" data-filter="trend">Trend Only</button>
     <button class="filter-btn" data-filter="tier1">Tier 1</button>
@@ -315,7 +352,7 @@ function handleFile(file) {
 }
 
 function parseCSV(csv) {
-  const lines = csv.trim().split('\\n');
+  const lines = csv.trim().split('\n');
   const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
   const signals = [];
   for (let i = 1; i < lines.length; i++) {
@@ -365,9 +402,13 @@ function loadSignals(signals) {
     hitTP3: s.hit_tp3 === true || s.hit_tp3 === 'true',
     hitTP4: s.hit_tp4 === true || s.hit_tp4 === 'true',
     closed: s.closed === true || s.closed === 'true',
+    isBlocked: s.blocked === true || s.blocked === 'true' || s.hard_filter === true || s.hard_filter === 'true',
+    blockReason: s.block_reason || s.hard_filter_reason || '',
+    marketCtx: s.market_ctx || null,
     time: s.time || new Date().toISOString()
   }));
 
+  updateMarketBar(allSignals[0]?.marketCtx);
   updateStats();
   renderSignals();
   calculateBacktest();
@@ -375,11 +416,38 @@ function loadSignals(signals) {
   document.getElementById('upload-area').classList.add('hidden');
 }
 
+function updateMarketBar(ctx) {
+  if (!ctx) return;
+  const btcd = ctx.btc_dom || ctx.btcd || '--';
+  const total = ctx.total_trend || ctx.total || '--';
+  const total3 = ctx.total3_trend || ctx.total3 || '--';
+  const fg = ctx.fg_now || ctx.fg || '--';
+  const fgZone = ctx.fg_zone || '';
+
+  document.getElementById('m-btcd').textContent = typeof btcd === 'number' ? btcd + '%' : btcd;
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-total3').textContent = total3;
+  document.getElementById('m-fg').textContent = typeof fg === 'number' ? fg + ' ' + fgZone : fg;
+
+  const statusEl = document.getElementById('m-status');
+  if (fg <= 20) {
+    statusEl.textContent = 'BLOCKED';
+    statusEl.className = 'market-value block';
+  } else if (fg <= 40 || total === 'FALLING') {
+    statusEl.textContent = 'CAUTION';
+    statusEl.className = 'market-value warn';
+  } else {
+    statusEl.textContent = 'OK';
+    statusEl.className = 'market-value ok';
+  }
+}
+
 function updateStats() {
-  const signals = allSignals.filter(s => !s.isWatch);
-  const watches = allSignals.filter(s => s.isWatch);
-  const ew = allSignals.filter(s => ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType));
-  const trend = allSignals.filter(s => s.structType === 'TREND_CONTINUATION');
+  const signals = allSignals.filter(s => !s.isWatch && !s.isBlocked);
+  const watches = allSignals.filter(s => s.isWatch && !s.isBlocked);
+  const blocked = allSignals.filter(s => s.isBlocked);
+  const ew = allSignals.filter(s => ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType) && !s.isBlocked);
+  const trend = allSignals.filter(s => s.structType === 'TREND_CONTINUATION' && !s.isBlocked);
   const closed = allSignals.filter(s => s.closed);
   const wins = closed.filter(s => s.result === 'win' || s.hitTP1);
   const winRate = closed.length > 0 ? Math.round((wins.length / closed.length) * 100) + '%' : '-';
@@ -432,13 +500,14 @@ function renderSignals() {
   const grid = document.getElementById('signals-grid');
   let filtered = allSignals;
 
-  if (currentFilter === 'signal') filtered = allSignals.filter(s => !s.isWatch);
-  else if (currentFilter === 'watch') filtered = allSignals.filter(s => s.isWatch);
-  else if (currentFilter === 'ew') filtered = allSignals.filter(s => ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType));
-  else if (currentFilter === 'trend') filtered = allSignals.filter(s => s.structType === 'TREND_CONTINUATION');
-  else if (currentFilter === 'tier1') filtered = allSignals.filter(s => s.tier === 1);
-  else if (currentFilter === 'tier2') filtered = allSignals.filter(s => s.tier === 2);
-  else if (currentFilter === 'tier3') filtered = allSignals.filter(s => s.tier === 3);
+  if (currentFilter === 'signal') filtered = allSignals.filter(s => !s.isWatch && !s.isBlocked);
+  else if (currentFilter === 'watch') filtered = allSignals.filter(s => s.isWatch && !s.isBlocked);
+  else if (currentFilter === 'blocked') filtered = allSignals.filter(s => s.isBlocked);
+  else if (currentFilter === 'ew') filtered = allSignals.filter(s => ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType) && !s.isBlocked);
+  else if (currentFilter === 'trend') filtered = allSignals.filter(s => s.structType === 'TREND_CONTINUATION' && !s.isBlocked);
+  else if (currentFilter === 'tier1') filtered = allSignals.filter(s => s.tier === 1 && !s.isBlocked);
+  else if (currentFilter === 'tier2') filtered = allSignals.filter(s => s.tier === 2 && !s.isBlocked);
+  else if (currentFilter === 'tier3') filtered = allSignals.filter(s => s.tier === 3 && !s.isBlocked);
 
   if (filtered.length === 0) {
     grid.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><div>No signals match this filter</div></div>';
@@ -456,9 +525,10 @@ function renderSignals() {
 function renderCard(s) {
   const isEW = ['EW_W2','EW_W4','ABC_ZIGZAG','WXYXZ','EXPANDED_FLAT','RUNNING_CORRECTION'].includes(s.structType);
   const isTrend = s.structType === 'TREND_CONTINUATION';
-  const cardClass = s.isWatch ? 'watch' : (isEW ? 'ew-validated' : (isTrend ? 'trend-only' : ''));
-  const badgeType = s.isWatch ? 'badge-watch' : 'badge-signal';
-  const badgeText = s.isWatch ? 'WATCH' : 'SIGNAL';
+  const isBlocked = s.isBlocked;
+  const cardClass = isBlocked ? 'blocked' : (s.isWatch ? 'watch' : (isEW ? 'ew-validated' : (isTrend ? 'trend-only' : '')));
+  const badgeType = isBlocked ? 'badge-blocked' : (s.isWatch ? 'badge-watch' : 'badge-signal');
+  const badgeText = isBlocked ? 'BLOCKED' : (s.isWatch ? 'WATCH' : 'SIGNAL');
   const structClass = isEW ? 'ew' : (isTrend ? 'trend' : '');
   const tierBadge = s.tier === 1 ? 'badge-tier1' : (s.tier === 2 ? 'badge-tier2' : 'badge-tier3');
   const tierText = s.tier === 1 ? 'T1' : (s.tier === 2 ? 'T2' : 'T3');
@@ -553,6 +623,7 @@ function renderCard(s) {
         </div>
       </div>
 
+      ${s.isBlocked ? `<div style="margin-top:8px;font-size:0.85rem;font-weight:600;color:var(--danger)">🚫 ${s.blockReason}</div>` : ''}
       ${s.divergence ? '<div style="margin-top:8px;font-size:0.8rem;color:var(--signal)">🔄 Bullish Divergence</div>' : ''}
       ${s.alternate ? `<div style="margin-top:4px;font-size:0.75rem;color:var(--watch)">⚠️ Alternate: ${s.alternate}</div>` : ''}
       ${s.result ? `<div style="margin-top:8px;font-size:0.85rem;font-weight:600;color:${s.result === 'win' ? 'var(--signal)' : 'var(--danger)'}">Result: ${s.result.toUpperCase()} ${s.exitPrice ? '@ $' + s.exitPrice.toFixed(2) : ''}</div>` : ''}
@@ -615,6 +686,16 @@ const demoSignals = [
     sl_reason: "No signal", hold: "",
     conf: "NONE", is_locked: false, divergence: false, time: new Date().toISOString(),
     result: "loss", exit_price: 65000, closed: true
+  },
+  {
+    sym: "SOL", tier: 1, type: "SWING", current: 148, score: 0, _raw_score: 0, _max_ceiling: 55,
+    struct_type: "TREND_CONTINUATION", struct_label: "Trend Continuation - BLOCKED", sub_type: "IMPULSE_W3_LIKELY",
+    trend: "UPTREND", phase: "TRENDING_UP", regime: "Normal",
+    rsi: 55, stoch: 62, position_size: 0,
+    sl: 0, tp1: 0, tp2: 0, tp3: 0, tp4: 0,
+    sl_reason: "N/A", hold: "Days to weeks",
+    conf: "NONE", is_locked: false, blocked: true, block_reason: "HARD FILTER: BTC.D=58% rising - Alt bloodbath", divergence: false, time: new Date().toISOString(),
+    market_ctx: { btc_dom: 58, total_trend: "RISING", total3_trend: "FALLING", fg_now: 35, fg_zone: "FEAR" }
   }
 ];
 
