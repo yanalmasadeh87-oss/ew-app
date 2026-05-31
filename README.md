@@ -1,71 +1,47 @@
-# EW Strategy V6 — Halal Crypto Trading Bot
+# EW Strategy V6 Dashboard
 
-Adaptive structure-aware trading bot for halal cryptocurrency pairs. Analyzes each chart based on its own price behavior and Elliott Wave structure, not fixed rules.
+HTML dashboard for visualizing EW Strategy V6 signals with hard market filters.
 
 ## Features
 
-- **Adaptive Analysis** — Chart decides the method (EW, patterns, trend)
-- **Hard Score Ceilings** — Trend signals capped at 55, EW structures up to 100
-- **WATCH-Only Trend** — Trend continuation requires 3xHH/HL, ADX>30, HTF bullish
-- **No EW/Fib Bonus for Trend** — Reserved for real EW structures only
-- **Volatility Regime Detection** — Adjusts pivots and risk per market conditions
-- **Structure Memory** — Anti flip-flop, locks valid structures for 30 days
-- **HTF Weekly Validation** — Blocks signals against weekly trend
-- **Position Sizing** — By score, volatility, and trend strength
-- **Telegram Alerts** — Real-time signals, watches, TP/SL hits
-- **70-Coin Watchlist** — Tier 1-3 halal coins
+- **Live Market Bar** - BTC.D, TOTAL, TOTAL3, Fear & Greed with color status
+- **Hard Ceiling Scoring Table** - Visible at top, all 10 structure types
+- **Signal vs WATCH vs BLOCKED** - Green = trade, Orange = watch, Red = blocked
+- **EW-Validated Border** - Purple for EW_W2/W4/ABC/WXYXZ
+- **Trend-Only Border** - Blue for TREND_CONTINUATION (capped at 55)
+- **Score Breakdown** - Ceiling, Raw score, Capped score under each bar
+- **TP Hit Tracking** - Green highlight on TP1-TP4 when hit
+- **Backtest Results** - Upload CSV/JSON to see win rate, avg return, best coin
+- **Filters** - All / Signals / Watches / Blocked / EW / Trend / Tier 1-3
 
-## Scoring Table (Hard Ceilings)
+## Market Bar Colors
 
-| Structure | Max Score | EW Bonus | Fib Bonus | Notes |
-|-----------|-----------|----------|-----------|-------|
-| TREND_CONTINUATION | 55 | 0 | 0 | Trend only, NO EW/Fib |
-| IMPULSE_W3_LIKELY | 55 | 0 | 0 | WATCH only, 3xHH/HL, ADX>30 |
-| EARLY_TREND | 50 | 0 | 0 | WATCH only, weakest signal |
-| EW_W2 / EW_W4 | 100 | 25 | 15 | Full EW validation |
-| ABC_ZIGZAG | 100 | 25 | 15 | Full EW validation |
-| WXYXZ | 95 | 20 | 12 | Complex but validated |
-| EXPANDED_FLAT | 90 | 18 | 10 | Validated correction |
-| RUNNING_CORRECTION | 85 | 15 | 8 | Validated correction |
-| DOUBLE_BOTTOM | 80 | 12 | 8 | Pattern only |
-| FALLING_WEDGE | 75 | 10 | 5 | Pattern only |
+| Status | Color | Meaning |
+|--------|-------|---------|
+| OK | Green | Market healthy, signals allowed |
+| CAUTION | Orange | Fear zone or falling total - reduced positions |
+| BLOCKED | Red | Extreme fear or alt bloodbath - no entries |
 
-## Setup
+## How to Use
 
-### 1. Environment Variables
+1. **Export from bot** - The bot auto-saves `signals.json` every scan cycle
+2. **Upload to dashboard** - Drag & drop `signals.json` or click upload area
+3. **View signals** - Filter by type, tier, or blocked status
+4. **Check market** - Top bar shows live market conditions from bot
 
-```bash
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-export TELEGRAM_CHAT_ID="your_chat_id"
-```
+## Files
 
-### 2. Install Dependencies
+- `index.html` - Main dashboard (this file)
+- `signals.json` - Exported from bot (auto-generated)
 
-```bash
-pip install -r requirements.txt
-```
+## Demo
 
-### 3. Run
+The dashboard loads with 6 demo signals showing:
+- BTC EW_W4 at 88/100 (full signal)
+- ETH ABC_ZIGZAG at 72/100 (full signal)
+- SOL TREND at 50/100 (WATCH, ceiling 55)
+- XRP EARLY_TREND at 45/100 (WATCH, ceiling 50)
+- BTC Double Top (loss)
+- SOL BLOCKED by BTC.D=58% (hard filter)
 
-```bash
-python signal_bot.py
-```
-
-## File Structure
-
-```
-Hal-coin/
-├── signal_bot.py      # Main bot (V6 fixed)
-├── requirements.txt   # Dependencies
-└── README.md          # This file
-```
-
-## Security
-
-- Bot token loaded from `os.getenv()` — never hardcoded
-- Regenerate token if previously exposed
-- No private keys or API secrets in code
-
-## Disclaimer
-
-This is for educational purposes only. Not financial advice. Trade at your own risk.
+Upload your real `signals.json` to replace demos.
